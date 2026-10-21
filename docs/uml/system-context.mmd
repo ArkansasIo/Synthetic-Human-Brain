@@ -1,0 +1,10 @@
+flowchart TD
+    Researcher[Researcher] --> CLI[Command-line Interface]
+    CLI --> Config[Validated Configuration]
+    CLI --> Sim[Simulation Engine]
+    Config --> Sim
+    Sim --> Snapshot[Immutable Simulation Snapshot]
+    Snapshot --> Output[Console or Future Visualization]
+    Tests[Automated Tests] --> Config
+    Tests --> Sim
+    Docs[Experiment Protocol and Limitations] -. informs .-> Researcher
