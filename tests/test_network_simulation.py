@@ -7,8 +7,8 @@ import pytest
 from synthetic_brain import (
     LeakyRateNeuron,
     LinearSynapse,
-    NetworkSimulation,
     NeuralNetwork,
+    NetworkSimulation,
     SimulationConfig,
 )
 
