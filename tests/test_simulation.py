@@ -48,7 +48,7 @@ def test_invalid_configuration_is_rejected(kwargs: dict, exception: type[Excepti
 
 @pytest.mark.parametrize(
     "value",
-    [math.nan, math.inf, -math.inf, "bad", True, pytest.param(10**10000, id="huge-integer")],
+    [math.nan, math.inf, -math.inf, "bad", True],
 )
 def test_invalid_external_input_is_rejected(value: object) -> None:
     simulation = Simulation(SimulationConfig())
@@ -61,3 +61,9 @@ def test_snapshot_is_immutable_tuple() -> None:
     assert isinstance(simulation.snapshot().activity, tuple)
     with pytest.raises(AttributeError):
         simulation.snapshot().activity.append(0.5)  # type: ignore[attr-defined]
+
+
+def test_invalid_external_input_rejects_very_large_integer() -> None:
+    simulation = Simulation(SimulationConfig())
+    with pytest.raises(ValueError, match="finite number"):
+        simulation.step(10**10000)
