@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -31,11 +32,13 @@ class NeuralNetwork:
         return tuple(self._connections)
 
     def connect(self, source: int, target: int, weight: float = 1.0) -> Connection:
-        """Add a directed connection after validating node indices."""
+        """Add a directed connection after validating node indices and weight."""
         self._validate_node(source)
         self._validate_node(target)
         if not isinstance(weight, (int, float)) or isinstance(weight, bool):
             raise TypeError("weight must be a number")
+        if not math.isfinite(float(weight)):
+            raise ValueError("weight must be finite")
         connection = Connection(source, target, float(weight))
         self._connections.append(connection)
         return connection
