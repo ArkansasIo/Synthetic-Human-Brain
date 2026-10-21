@@ -2,44 +2,64 @@
 
 ## Scope
 
-The project currently contains a discrete-time abstract rate-network model plus reusable weighted graph connectivity primitives. The starter model demonstrates reproducibility, validation, state updates, and testing. It is deliberately not intended to simulate biological detail.
+The project contains a discrete-time abstract rate-network example and a reusable network-driven simulation engine. These components demonstrate reproducibility, validation, weighted graph connectivity, model composition, and immutable snapshots. They are computational abstractions, not biological brain models.
 
 ## Components
 
-- **SimulationConfig**: immutable configuration and range checks.
-- **Simulation**: owns activity state and advances exactly one step per call.
-- **SimulationSnapshot**: immutable representation of model output.
-- **NeuralNetwork**: directed weighted connectivity graph with non-mutating signal calculation.
-- **CLI**: configures a small run and prints states.
-- **Tests**: verify determinism, shape, bounds, graph behavior, and invalid input handling.
+- **SimulationConfig**: immutable configuration and validation.
+- **Simulation**: reference ring-topology simulator.
+- **SimulationSnapshot**: immutable state from the reference simulator.
+- **NeuralNetwork**: directed weighted graph.
+- **NeuronModel / LeakyRateNeuron**: protocol and default abstract unit dynamics.
+- **SynapseModel / LinearSynapse**: protocol and default weighted signal transform.
+- **NetworkSimulation**: composes graph, synapse transform, and neuron update model.
+- **NetworkSimulationSnapshot**: immutable state from network-driven runs.
+- **CLI**: runs the reference simulation.
+- **Tests and CI**: check determinism, validation, graph behavior, model composition, and package quality.
 
 ## Network model
 
-`NeuralNetwork` stores connections as `(source, target, weight)` records. Incoming signal is calculated as:
+`NeuralNetwork` stores directed connections as `(source, target, weight)` records. The signal from a connection is transformed by the configured synapse model and added to its target's incoming signal:
 
-`signal[target] += activity[source] * weight`
+```text
+incoming[target] += synapse.transmit(activity[source], weight)
+```
 
-The graph is intentionally independent from `Simulation` at this stage. This keeps the current ring-network example stable while providing a clean seam for future configurable-connectivity models.
+## Network simulation update rule
 
-## Current simulation update rule
+Every update is synchronous:
 
-For unit i with left and right neighbors:
+1. Capture the prior activity snapshot.
+2. Compute all connection signals from that prior snapshot.
+3. Sum signals by target unit.
+4. Call each neuron model once with its prior activity, total incoming signal plus external input, and configured time step.
+5. Publish the resulting state as an immutable snapshot.
 
-`neighbor_i(t) = (activity_(i-1)(t) + activity_(i+1)(t)) / 2`
+This avoids an early unit update changing the input seen by a later unit during the same step. The engine verifies custom synapse and neuron outputs are finite numbers. The default `LeakyRateNeuron` clamps to its configured bounds; custom implementations own their own output-range semantics.
 
-`activity_i(t+1) = clamp(decay * activity_i(t) + (1-decay) * neighbor_i(t) + time_step * external_input, 0, 1)`
+See [NETWORK_SIMULATION.md](NETWORK_SIMULATION.md) for a usage example.
 
-All neighbor values come from the previous state, so updating one unit does not influence another unit within the same step. Boundary neighbors wrap around in a ring topology.
+## Reference ring simulation
 
-## Extension points
+The original `Simulation` remains a small ring-topology example. For each unit i:
 
-1. Connect `NeuralNetwork` to a configurable simulation backend.
-2. Define explicit population and synapse interfaces.
-3. Add experiment configuration files and persisted run metadata.
-4. Add numerical baselines and regression tests.
-5. Add visualization as an optional dependency.
-6. Introduce biologically grounded dynamics only alongside citations, parameter provenance, units, and validation data.
+```text
+neighbor_i(t) = (activity_(i-1)(t) + activity_(i+1)(t)) / 2
+activity_i(t+1) = clamp(decay * activity_i(t)
+                       + (1-decay) * neighbor_i(t)
+                       + time_step * external_input, 0, 1)
+```
+
+All neighbor values use the previous state and boundaries wrap in a ring.
 
 ## Determinism
 
-Initial states use a local random generator seeded from configuration. The simulation does not rely on global random state. Reproducibility across future versions should be checked by explicit regression tests rather than assumed.
+Both engines initialize activity from a local pseudo-random generator controlled by the configured seed. Reproducibility should be checked by regression tests across supported Python/runtime versions.
+
+## Future extension points
+
+1. Experiment configuration files and persisted run metadata.
+2. JSON/CSV output and a reproducible experiment runner.
+3. Sparse connectivity and network serialization.
+4. Numerical baselines and optional visualization.
+5. Biologically grounded dynamics only with cited equations, units, parameter provenance, reference datasets, and quantitative validation.
