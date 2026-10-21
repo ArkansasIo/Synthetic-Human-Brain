@@ -11,12 +11,15 @@
 
 ## Phase 2 — Network models
 
-- [ ] Pluggable neuron/population models
-- [ ] Configurable synapse models
+- [x] Pluggable neuron model protocol and default leaky-rate model
+- [x] Pluggable synapse model protocol and default linear model
+- [x] Network-driven simulation engine with synchronous updates
+- [x] Seeded initialization and immutable network snapshots
+- [x] Validation for graph/configuration compatibility and finite model outputs
 - [ ] Sparse connectivity representation
 - [ ] Network serialization
 - [ ] Experiment configuration files
-- [ ] Deterministic replay fixtures
+- [ ] Deterministic replay fixtures and golden-output tests
 
 ## Phase 3 — Research tooling
 
