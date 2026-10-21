@@ -19,7 +19,7 @@ class NeuralNetwork:
 
     def __init__(self, neuron_count: int) -> None:
         if isinstance(neuron_count, bool) or not isinstance(neuron_count, int):
-            raise ValueError("neuron_count must be an integer")
+            raise TypeError("neuron_count must be an integer")
         if neuron_count < 1:
             raise ValueError("neuron_count must be at least 1")
         self.neuron_count = neuron_count
@@ -35,7 +35,7 @@ class NeuralNetwork:
         self._validate_node(source)
         self._validate_node(target)
         if not isinstance(weight, (int, float)) or isinstance(weight, bool):
-            raise ValueError("weight must be a number")
+            raise TypeError("weight must be a number")
         connection = Connection(source, target, float(weight))
         self._connections.append(connection)
         return connection
