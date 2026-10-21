@@ -28,20 +28,21 @@ def test_activity_remains_bounded() -> None:
 
 
 @pytest.mark.parametrize(
-    ("kwargs", "message"),
+    ("kwargs", "exception", "message"),
     [
-        ({"neuron_count": 0}, "neuron_count"),
-        ({"time_step": 0}, "time_step"),
-        ({"decay": -0.1}, "decay"),
-        ({"decay": 1.1}, "decay"),
-        ({"neuron_count": True}, "neuron_count"),
-        ({"time_step": float("nan")}, "time_step"),
-        ({"decay": float("inf")}, "decay"),
-        ({"seed": 2.5}, "seed"),
+        ({"neuron_count": 0}, ValueError, "neuron_count"),
+        ({"time_step": 0}, ValueError, "time_step"),
+        ({"decay": -0.1}, ValueError, "decay"),
+        ({"decay": 1.1}, ValueError, "decay"),
+        ({"neuron_count": True}, TypeError, "neuron_count"),
+        ({"time_step": "bad"}, TypeError, "time_step"),
+        ({"time_step": float("nan")}, ValueError, "time_step"),
+        ({"decay": float("inf")}, ValueError, "decay"),
+        ({"seed": 2.5}, TypeError, "seed"),
     ],
 )
-def test_invalid_configuration_is_rejected(kwargs: dict, message: str) -> None:
-    with pytest.raises(ValueError, match=message):
+def test_invalid_configuration_is_rejected(kwargs: dict, exception: type[Exception], message: str) -> None:
+    with pytest.raises(exception, match=message):
         SimulationConfig(**kwargs)
 
 
