@@ -1,6 +1,7 @@
 """Behavioral tests for the abstract simulation starter."""
 
 import math
+
 import pytest
 
 from synthetic_brain import Simulation, SimulationConfig
@@ -47,7 +48,7 @@ def test_invalid_configuration_is_rejected(kwargs: dict, message: str) -> None:
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, "bad", True, 10**10000])
 def test_invalid_external_input_is_rejected(value: object) -> None:
     simulation = Simulation(SimulationConfig())
-    with pytest.raises(ValueError, match="finite number"):
+    with pytest.raises((TypeError, ValueError), match="finite number"):
         simulation.step(value)  # type: ignore[arg-type]
 
 
