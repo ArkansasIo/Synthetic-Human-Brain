@@ -4,15 +4,15 @@ A research-oriented software scaffold for exploring **synthetic neural systems**
 
 ## Project goals
 
-- Provide a modular neural-network simulation core.
+- Provide modular neural-network simulation primitives and a network-driven simulation engine.
 - Separate simulation state, model configuration, experiments, and visualization.
 - Make experiments reproducible through explicit configuration and seeded randomness.
 - Document assumptions, limitations, safety, and validation criteria.
-- Keep the implementation small, testable, and suitable for extension.
+- Keep the implementation testable and suitable for extension.
 
 ## Current status
 
-**Scaffold / early research prototype.** The project currently includes an abstract rate-network simulator and a reusable weighted connectivity graph. It is not a medically validated model, a consciousness implementation, a brain-computer interface, or a substitute for biological data or expert review.
+**Early research prototype.** The repository includes an abstract ring-network reference simulator, a directed weighted connectivity graph, pluggable neuron and synapse interfaces, and a graph-driven engine that applies weighted connections and advances all units synchronously. The code is not a medically validated model, a consciousness implementation, a brain-computer interface, or a substitute for biological data or expert review.
 
 ## Quick start
 
@@ -21,13 +21,36 @@ Requires Python 3.11 or newer.
 ```bash
 python -m venv .venv
 # Windows PowerShell:
-.venv\\Scripts\\Activate.ps1
+.venv\Scripts\Activate.ps1
 # macOS/Linux:
 # source .venv/bin/activate
 python -m pip install -e ".[dev]"
 python -m pytest
 python -m synthetic_brain
 ```
+
+## Network-driven simulation
+
+The reusable network engine composes `NeuralNetwork`, `NeuronModel`, and `SynapseModel`. Its default models provide bounded leaky-rate updates and linear weighted transmission.
+
+```python
+from synthetic_brain import NeuralNetwork, NetworkSimulation, SimulationConfig
+
+network = NeuralNetwork(neuron_count=3)
+network.connect(0, 1, weight=0.8)
+network.connect(1, 2, weight=0.5)
+network.connect(2, 0, weight=-0.2)
+
+simulation = NetworkSimulation(
+    network,
+    SimulationConfig(neuron_count=3, seed=42),
+)
+for _ in range(10):
+    snapshot = simulation.step(external_input=0.05)
+    print(snapshot.step, snapshot.activity)
+```
+
+Every step calculates connection signals from the prior activity snapshot and then updates each unit once. This makes the update synchronous rather than dependent on node iteration order. See [the network simulation guide](docs/NETWORK_SIMULATION.md) and [architecture notes](docs/ARCHITECTURE.md).
 
 ## Repository layout
 
@@ -37,20 +60,20 @@ python -m synthetic_brain
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── EXPERIMENTS.md
+│   ├── NETWORK_SIMULATION.md
+│   ├── PHASE_2.md
 │   ├── ROADMAP.md
 │   ├── SAFETY_AND_LIMITATIONS.md
-│   └── uml/system-context.mmd
+│   └── uml/
 ├── src/synthetic_brain/
-│   ├── __init__.py
-│   ├── __main__.py
 │   ├── config.py
 │   ├── network.py
-│   └── simulation.py
+│   ├── network_simulation.py
+│   ├── neuron.py
+│   ├── simulation.py
+│   └── synapse.py
 ├── tests/
-│   ├── test_network.py
-│   └── test_simulation.py
-├── pyproject.toml
-└── README.md
+└── pyproject.toml
 ```
 
 ## Development
@@ -67,7 +90,7 @@ Clearly distinguish measured data, model assumptions, simulated output, and hypo
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the staged development plan, including network models, experiment tooling, validation, and optional high-performance backends.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for staged work on sparse networks, serialization, experiment tooling, validation, and optional high-performance backends.
 
 ## License
 
