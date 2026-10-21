@@ -40,7 +40,13 @@ class Simulation:
 
     def step(self, external_input: float = 0.0) -> SimulationSnapshot:
         """Advance the model by one step, rejecting non-finite input."""
-        if not isinstance(external_input, (int, float)) or not math.isfinite(float(external_input)):
+        if isinstance(external_input, bool) or not isinstance(external_input, (int, float)):
+            raise ValueError("external_input must be a finite number")
+        try:
+            input_value = float(external_input)
+        except OverflowError as exc:
+            raise ValueError("external_input must be a finite number") from exc
+        if not math.isfinite(input_value):
             raise ValueError("external_input must be a finite number")
 
         previous = self._activity
@@ -53,7 +59,7 @@ class Simulation:
             updated = (
                 self.config.decay * value
                 + (1.0 - self.config.decay) * neighbor_signal
-                + self.config.time_step * float(external_input)
+                + self.config.time_step * input_value
             )
             next_activity.append(min(1.0, max(0.0, updated)))
 
