@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import random
+from dataclasses import dataclass
 
 from synthetic_brain.config import SimulationConfig
 
@@ -41,7 +41,7 @@ class Simulation:
     def step(self, external_input: float = 0.0) -> SimulationSnapshot:
         """Advance the model by one step, rejecting non-finite input."""
         if isinstance(external_input, bool) or not isinstance(external_input, (int, float)):
-            raise ValueError("external_input must be a finite number")
+            raise TypeError("external_input must be a finite number")
         try:
             input_value = float(external_input)
         except OverflowError as exc:
