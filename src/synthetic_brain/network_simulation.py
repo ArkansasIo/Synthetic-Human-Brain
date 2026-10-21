@@ -9,7 +9,6 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass
-from typing import Sequence
 
 from synthetic_brain.config import SimulationConfig
 from synthetic_brain.network import NeuralNetwork
