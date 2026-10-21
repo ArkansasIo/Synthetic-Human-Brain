@@ -33,6 +33,10 @@ def test_activity_remains_bounded() -> None:
         ({"time_step": 0}, "time_step"),
         ({"decay": -0.1}, "decay"),
         ({"decay": 1.1}, "decay"),
+        ({"neuron_count": True}, "neuron_count"),
+        ({"time_step": float("nan")}, "time_step"),
+        ({"decay": float("inf")}, "decay"),
+        ({"seed": 2.5}, "seed"),
     ],
 )
 def test_invalid_configuration_is_rejected(kwargs: dict, message: str) -> None:
@@ -40,7 +44,7 @@ def test_invalid_configuration_is_rejected(kwargs: dict, message: str) -> None:
         SimulationConfig(**kwargs)
 
 
-@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, "bad"])
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, "bad", True, 10**10000])
 def test_invalid_external_input_is_rejected(value: object) -> None:
     simulation = Simulation(SimulationConfig())
     with pytest.raises(ValueError, match="finite number"):
@@ -50,3 +54,5 @@ def test_invalid_external_input_is_rejected(value: object) -> None:
 def test_snapshot_is_immutable_tuple() -> None:
     simulation = Simulation(SimulationConfig())
     assert isinstance(simulation.snapshot().activity, tuple)
+    with pytest.raises(AttributeError):
+        simulation.snapshot().activity.append(0.5)  # type: ignore[attr-defined]
