@@ -46,7 +46,10 @@ def test_invalid_configuration_is_rejected(kwargs: dict, exception: type[Excepti
         SimulationConfig(**kwargs)
 
 
-@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, "bad", True, 10**10000])
+@pytest.mark.parametrize(
+    "value",
+    [math.nan, math.inf, -math.inf, "bad", True, pytest.param(10**10000, id="huge-integer")],
+)
 def test_invalid_external_input_is_rejected(value: object) -> None:
     simulation = Simulation(SimulationConfig())
     with pytest.raises((TypeError, ValueError), match="finite number"):
