@@ -1,5 +1,7 @@
 """Tests for weighted network connectivity."""
 
+import math
+
 import pytest
 
 from synthetic_brain.network import NeuralNetwork
@@ -29,3 +31,17 @@ def test_activity_size_must_match_network() -> None:
     network = NeuralNetwork(2)
     with pytest.raises(ValueError, match="activity length"):
         network.incoming_signal((0.1,))
+
+
+@pytest.mark.parametrize("weight", ["bad", True, math.nan, math.inf])
+def test_invalid_weights_are_rejected(weight: object) -> None:
+    network = NeuralNetwork(2)
+    with pytest.raises((TypeError, ValueError), match="weight"):
+        network.connect(0, 1, weight)  # type: ignore[arg-type]
+
+
+def test_invalid_network_size_is_rejected() -> None:
+    with pytest.raises(TypeError, match="neuron_count"):
+        NeuralNetwork(True)
+    with pytest.raises(ValueError, match="neuron_count"):
+        NeuralNetwork(0)
