@@ -1,24 +1,34 @@
-# Safety, ethics, and limitations
+## Intended use
 
-## Model boundaries
+This is an educational and research-oriented scaffold for abstract neural-system simulations. It does not reproduce a human brain, establish consciousness, diagnose or treat conditions, or validate a brain-computer interface.
 
-This repository begins with an abstract software model. It does not create living tissue, reproduce a complete human brain, establish consciousness, or provide a clinically validated tool.
+## Scientific integrity
 
-## Data handling
+- Label simulated, measured, inferred, and hypothetical values distinctly.
+- Publish assumptions, parameters, seeds, failures, and limitations.
+- Do not claim biological accuracy without defined validation and evidence.
+- Use baselines and report uncertainty where appropriate.
 
-- Use public, appropriately licensed, de-identified data.
-- Do not commit patient records, identifiable brain scans, private neural recordings, credentials, or access tokens.
-- Document consent, provenance, license, preprocessing, and access controls before introducing human-subject data.
-- Keep sensitive research data outside the source repository.
+## Data protection
 
-## Responsible claims
+Use synthetic data and generated test fixtures by default. Do not commit clinical records, personal information, neural recordings, biometric identifiers, credentials, or private research datasets. Before working with identifiable or human-subject data, obtain appropriate consent, institutional review, security controls, and legal/ethical guidance.
 
-Label results as simulated unless they come from real measurements. Do not use the prototype for diagnosis, treatment selection, or clinical decisions. Do not infer subjective experience or consciousness from model outputs.
+## Security
 
-## Proposed review gates
+- Never hard-code tokens or passwords.
+- Validate imported configuration and data.
+- Avoid executing untrusted serialized objects or downloaded scripts.
+- Minimize logs and never log raw sensitive data.
+- Review and constrain dependencies.
 
-1. Publish model assumptions and evidence for each parameter.
-2. Add reference datasets and quantitative validation tests.
-3. Document known failure modes and uncertainty.
-4. Conduct domain-expert and ethics review where human data or human-subject research is involved.
-5. Review security, privacy, and data retention for external interfaces.
+## Model limitations
+
+Abstract neural simulations may omit cellular diversity, morphology, ion-channel dynamics, synaptic plasticity, glial interactions, biochemical signaling, development, body/environment interaction, and multi-scale organization. Conclusions are limited by the mechanisms represented and the validation performed.
+
+## Reporting language
+
+Prefer: "In this simplified simulation, metric X changed under the documented configuration." Avoid claims that a result proves how the human brain works or that the model is conscious or medically accurate.
+
+## Incident response
+
+If a commit exposes a credential, revoke or rotate it immediately and assess the exposure. Removing a file from the latest commit does not remove it from Git history or existing clones.

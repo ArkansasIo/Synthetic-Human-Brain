@@ -1,37 +1,47 @@
-# Experiment protocol
+## Purpose
 
-Each experiment should record enough information for another researcher to reproduce the run.
+Define a repeatable record for computational experiments. A software simulation is not automatically evidence about a biological brain.
 
-## Required metadata
+## Required experiment record
 
-- Experiment identifier and research question
-- Code revision / commit SHA
-- Model type and version
-- Full parameters and units
-- Random seed
-- Input schedule
-- Initialization procedure
-- Number of steps and sampling cadence
-- Metrics and aggregation rules
-- Observations separated from interpretation
-- Known limitations and failed runs
+Record the experiment ID, hypothesis, source revision, all parameters, random seed, runtime and dependency versions, procedure, metric definitions and units, results (including null/failed runs), and known limitations.
 
-## Starter experiments
+## Suggested workflow
 
-### A. Deterministic replay
+1. State a testable question and expected outcome.
+2. Define a baseline and metrics before execution.
+3. Validate the configuration and edge conditions.
+4. Run a small pilot.
+5. Repeat stochastic trials with predeclared seeds when useful.
+6. Report variability, failures, and results not matching expectations.
+7. Compare with an analytical or established baseline where possible.
+8. Save configuration and provenance with generated outputs.
 
-Run twice with the same configuration and seed. Compare every activity snapshot.
+## Reproducibility checklist
 
-**Expected outcome:** both runs match in the same Python/runtime version.
+- [ ] Code revision recorded.
+- [ ] Parameters and defaults explicit.
+- [ ] Seeds recorded and used by the implementation.
+- [ ] Metrics and output schema documented.
+- [ ] Independent repeat attempted.
+- [ ] Edge cases tested.
+- [ ] Conclusions distinguish simulation from biological evidence.
 
-### B. Decay sensitivity
+## Example template
 
-Run configurations with decay values 0.1, 0.5, and 0.9, keeping other parameters constant. Compare trajectories. Ask how this update rule changes short-term smoothing.
+```yaml
+experiment_id: EX-0001
+question: "Does parameter A change metric B in this abstract network?"
+model_revision: "<git-commit-sha>"
+seed: 12345
+configuration:
+  parameter_a: 0.1
+metrics:
+  - name: metric_b
+    definition: "Specify calculation and units"
+results_file: "results/EX-0001.json"
+limitations:
+  - "Abstract simulation; not a biophysical model"
+```
 
-### C. External input saturation
-
-Apply positive and negative constant input. Record the first step at which any unit reaches a boundary. Ask how often clipping dominates the dynamics.
-
-## Interpretation rules
-
-A successful software test is not evidence of biological validity. A visually plausible trajectory is not evidence of cognition or consciousness. Claims about biological systems require suitable experimental data, explicit model comparison, and independent review.
+The template values are illustrative. A successful test demonstrates behavior under tested conditions; it does not establish biological fidelity, cognition, consciousness, or clinical utility.

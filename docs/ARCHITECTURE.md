@@ -1,36 +1,46 @@
 # Architecture
 
-## Scope
+## Status
 
-The starter uses a discrete-time, abstract rate-network model to demonstrate reproducibility, validation, state updates, and testing. It is deliberately not intended to simulate biological detail.
+The repository is currently a documentation-only scaffold. This document specifies proposed boundaries, not existing implementation.
 
-## Components
+## Design goals
 
-- **SimulationConfig**: immutable configuration and range checks.
-- **Simulation**: owns activity state and advances exactly one step per call.
-- **SimulationSnapshot**: immutable representation of model output.
-- **CLI**: configures a small run and prints states.
-- **Tests**: verify determinism, shape, bounds, and invalid-input handling.
+- Deterministic, testable simulation steps.
+- Separate immutable configuration from mutable state.
+- Reproducible runs with recorded seeds and model versions.
+- Traceable experiment metadata and explicit model limitations.
+- Synthetic data by default; no personal, clinical, neural, or biometric data in version control.
 
-## Update rule
+## Proposed flow
 
-For unit i with left and right neighbors:
+```mermaid
+flowchart TD
+    CLI[CLI] --> Config[Validated configuration]
+    Config --> Engine[Simulation engine]
+    Engine <--> State[Network state]
+    Engine --> Metrics[Metrics and diagnostics]
+    Metrics --> Results[Results plus provenance]
+    Tests[Automated tests] -. validate .-> Config
+    Tests -. validate .-> Engine
+```
 
-`neighbor_i(t) = (activity_(i-1)(t) + activity_(i+1)(t)) / 2`
+### Configuration
 
-`activity_i(t+1) = clamp(decay * activity_i(t) + (1-decay) * neighbor_i(t) + time_step * external_input, 0, 1)`
+Validate dimensions, update rules, parameter ranges, run length, and seed at the boundary. Reject non-finite parameters and unsupported modes explicitly.
 
-All neighbor values come from the previous state, so updating one unit does not influence another unit within the same step. Boundary neighbors wrap around in a ring topology.
+### Engine and state
 
-## Extension points
+The engine should own update order and expose an explicit step operation. Store mutable state separately from configuration and avoid hidden global state. Identical initial state, configuration, seed, and runtime should produce equivalent results within documented numerical tolerance.
 
-1. Add a graph-backed connectivity matrix.
-2. Define explicit population and synapse interfaces.
-3. Add experiment configuration files and persisted run metadata.
-4. Add numerical baselines and regression tests.
-5. Add visualization as an optional dependency.
-6. Introduce biologically grounded dynamics only alongside citations, parameter provenance, and validation data.
+### Results
 
-## Determinism
+Record configuration, seed, code revision, runtime/dependency versions, step count, metrics, and limitations. Label generated values as simulations, not biological measurements.
 
-Initial states use a local random generator seeded from configuration. The simulation does not rely on global random state. Reproducibility across future versions should be checked by explicit regression tests rather than assumed.
+### Error handling
+
+Fail fast on invalid configuration, use actionable exceptions, and never silently coerce invalid values. Preserve useful diagnostic metadata without logging sensitive data.
+
+## Non-goals
+
+This scaffold is not a whole-brain emulation, medical device, consciousness detector, diagnostic system, or validated model of human cognition. Biological interpretations require use-case-specific validation and independent domain review.

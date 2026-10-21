@@ -1,10 +1,15 @@
 flowchart TD
-    Researcher[Researcher] --> CLI[Command-line Interface]
-    CLI --> Config[Validated Configuration]
-    CLI --> Sim[Simulation Engine]
-    Config --> Sim
-    Sim --> Snapshot[Immutable Simulation Snapshot]
-    Snapshot --> Output[Console or Future Visualization]
-    Tests[Automated Tests] --> Config
-    Tests --> Sim
-    Docs[Experiment Protocol and Limitations] -. informs .-> Researcher
+    Researcher[Researcher / developer]
+    Config[Experiment configuration]
+    Engine[Abstract simulation engine]
+    State[Simulation state]
+    Metrics[Metrics and diagnostics]
+    Results[Results plus provenance]
+    Researcher -->|defines question and parameters| Config
+    Config -->|validated input| Engine
+    Engine <--> State
+    Engine --> Metrics
+    Metrics --> Results
+    Results -->|interpret within limits| Researcher
+    Tests[Automated tests] -. validates .-> Config
+    Tests -. validates .-> Engine

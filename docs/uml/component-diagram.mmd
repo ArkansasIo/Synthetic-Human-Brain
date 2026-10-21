@@ -1,0 +1,12 @@
+flowchart LR
+    CLI[CLI / entry point] --> Config[Configuration validation]
+    Config --> Engine[Simulation engine]
+    Engine <--> State[State representation]
+    Engine --> Metrics[Metrics]
+    Metrics --> Serializer[Result serializer]
+    Serializer --> Output[JSON / CSV artifacts]
+    Diagnostics[Diagnostics] --- Engine
+    Tests[Unit tests] -.-> Config
+    Tests -.-> Engine
+    Tests -.-> State
+    Tests -.-> Metrics
