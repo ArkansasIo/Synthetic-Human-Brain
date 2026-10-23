@@ -9,6 +9,7 @@ from synthetic_brain.algorithms import (
     softmax, stdp_update, td_error, td_update, wilson_cowan_step,
 )
 from synthetic_brain.brainlang import BrainClass, BrainLang, BrainObject, BrainRuntime, Environment, Parser, Token, lex, run
+from synthetic_brain.cl1 import CL1Bridge, CL1Connection, CL1Spike, CL1Stimulus, CL1Tick, cl1_available
 from synthetic_brain.config import SimulationConfig
 from synthetic_brain.connectome import Connectome, ConnectomeEdge
 from synthetic_brain.metrics import coefficient_of_variation, firing_rate, mean_abs_error, population_entropy, synchrony_index
@@ -24,17 +25,19 @@ from synthetic_brain.synapse import LinearSynapse, SynapseModel
 
 __all__ = [
     "AdExNeuron", "AMPA_CURRENT", "AMPAReceptor", "BrainClass", "BrainLang", "BrainNetwork",
-    "BrainObject", "BrainRegion", "BrainRuntime", "Compartment", "CompartmentTree", "Connectome",
-    "ConnectomeEdge", "Connection", "ConductanceSynapse", "DEFAULT_NEUROMODULATORS", "DopamineSignal",
-    "Environment", "GABAA_CURRENT", "GABAB_CURRENT", "GABAbReceptor", "GABAaReceptor",
-    "HodgkinHuxleyNeuron", "HomeostaticController", "IzhikevichNeuron", "LIFNeuron", "LeakyRateNeuron",
-    "LinearSynapse", "MorphologyEdge", "NMDA_CURRENT", "NMDAReceptor", "NetworkSimulation",
-    "NetworkSimulationSnapshot", "NeuralNetwork", "NeuralPopulation", "NeuronModel", "NeuronMorphology",
-    "Neuromodulator", "Parser", "ReceptorCurrent", "RegionConnection", "Simulation", "SimulationConfig",
-    "SimulationSnapshot", "SynapseModel", "Token", "TsodyksMarkramSynapse", "WorkingMemoryTrace",
-    "bcm_update", "cable_diffusion_step", "coefficient_of_variation", "divisive_normalization", "euler_step",
-    "firing_rate", "hebbian_update", "homeostatic_update", "hopfield_hebbian", "hopfield_update", "kuramoto_step",
-    "lex", "mean_abs_error", "oja_update", "poisson_spike_train", "population_entropy", "predictive_coding_update",
-    "rk4_step", "run", "softmax", "stdp_update", "synchrony_index", "td_error", "td_update", "wilson_cowan_step",
+    "BrainObject", "BrainRegion", "BrainRuntime", "CL1Bridge", "CL1Connection", "CL1Spike",
+    "CL1Stimulus", "CL1Tick", "Compartment", "CompartmentTree", "Connectome", "ConnectomeEdge",
+    "Connection", "ConductanceSynapse", "DEFAULT_NEUROMODULATORS", "DopamineSignal", "Environment",
+    "GABAA_CURRENT", "GABAB_CURRENT", "GABAbReceptor", "GABAaReceptor", "HodgkinHuxleyNeuron",
+    "HomeostaticController", "IzhikevichNeuron", "LIFNeuron", "LeakyRateNeuron", "LinearSynapse",
+    "MorphologyEdge", "NMDA_CURRENT", "NMDAReceptor", "NetworkSimulation", "NetworkSimulationSnapshot",
+    "NeuralNetwork", "NeuralPopulation", "NeuronModel", "NeuronMorphology", "Neuromodulator", "Parser",
+    "ReceptorCurrent", "RegionConnection", "Simulation", "SimulationConfig", "SimulationSnapshot",
+    "SynapseModel", "Token", "TsodyksMarkramSynapse", "WorkingMemoryTrace", "bcm_update",
+    "cable_diffusion_step", "cl1_available", "coefficient_of_variation", "divisive_normalization",
+    "euler_step", "firing_rate", "hebbian_update", "homeostatic_update", "hopfield_hebbian",
+    "hopfield_update", "kuramoto_step", "lex", "mean_abs_error", "oja_update", "poisson_spike_train",
+    "population_entropy", "predictive_coding_update", "rk4_step", "run", "softmax", "stdp_update",
+    "synchrony_index", "td_error", "td_update", "wilson_cowan_step",
 ]
-__version__ = "0.5.0"
+__version__ = "0.5.1"
