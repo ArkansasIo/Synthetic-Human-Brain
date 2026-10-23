@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from .db import SessionFactory
 from .job_events import publish_job_event
 from .models import AuditLog, Job
@@ -16,7 +14,7 @@ def utcnow() -> datetime:
 
 
 async def execute_job(job_id: str, *, worker_id: str, endpoint_url: str | None, user_id: str | None) -> None:
-    async with SessionFactory() as session:  # type: AsyncSession
+    async with SessionFactory() as session:
         job = await session.get(Job, job_id)
         if job is None:
             return
