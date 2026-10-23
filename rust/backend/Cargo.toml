@@ -1,0 +1,9 @@
+[package]
+name = "synthetic-brain-backend"
+version = "0.1.0"
+edition = "2021"
+description = "Rust backend services for Synthetic Human Brain"
+license = "Apache-2.0"
+
+[dependencies]
+synthetic-brain-core = { path = "../" }
