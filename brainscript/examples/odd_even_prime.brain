@@ -1,0 +1,19 @@
+# BrainScript introductory example
+
+object Number
+    property value : integer
+
+    function classify(value)
+        return value
+    end
+end
+
+lambda classify_number(number):
+    if number < 2:
+        return "neither"
+    end
+    return "prime"
+end
+
+# Runtime reference:
+# odd(n), even(n), and prime(n) are deterministic built-ins.
