@@ -1,0 +1,31 @@
+// BrainLang example: simple cortical network
+
+const LEARNING_RATE = 0.01
+
+class Neuron {
+    fn init(threshold) {
+        this.threshold = threshold
+    }
+
+    fn fire(input) {
+        if input >= this.threshold {
+            return true
+        }
+        return false
+    }
+}
+
+fn reward_error(reward, value, next_value) {
+    return reward + 0.99 * next_value - value
+}
+
+brain Cortex {
+    population Excitatory size 1000
+    population Inhibitory size 250
+    connect Excitatory -> Inhibitory weight 0.20 delay 1.5
+    connect Inhibitory -> Excitatory weight -0.35 delay 2.0
+}
+
+var td = reward_error(1.0, 0.25, 0.80)
+print(td)
+step 1.0
