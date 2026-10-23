@@ -23,7 +23,7 @@ must be fitted and validated against appropriate experimental data.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, tanh, sqrt, sin, pi
+from math import exp, sin
 from typing import Callable, Sequence
 
 
