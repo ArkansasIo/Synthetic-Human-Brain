@@ -1,0 +1,18 @@
+@startuml
+class SensorArray
+class AnalogFrontEnd
+class Amplifier
+class Digitizer
+class EdgeProcessor
+class NeuralDataBus
+class Storage
+class SyntheticBrainEngine
+SensorArray --> AnalogFrontEnd
+AnalogFrontEnd --> Amplifier
+Amplifier --> Digitizer
+Digitizer --> EdgeProcessor
+EdgeProcessor --> NeuralDataBus
+NeuralDataBus --> Storage
+NeuralDataBus --> SyntheticBrainEngine
+SyntheticBrainEngine --> NeuralDataBus : experiment metadata
+@enduml
