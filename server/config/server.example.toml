@@ -1,0 +1,17 @@
+[server]
+host = "0.0.0.0"
+port = 8787
+api_prefix = "/api/v1"
+websocket_path = "/ws"
+
+[database]
+url = "mysql://synthetic_brain:CHANGE_ME@127.0.0.1:3306/synthetic_brain"
+max_connections = 16
+
+[security]
+require_tls = true
+session_minutes = 480
+
+[workers]
+max_concurrent_jobs = 4
+backend = "auto"
