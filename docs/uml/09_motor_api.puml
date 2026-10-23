@@ -1,0 +1,11 @@
+@startuml
+class MotorCommand
+class MotorState
+class Movement
+class Reflex
+class MotorFeedback
+MotorCommand --> Movement
+Movement --> MotorState
+Reflex --> MotorCommand
+MotorState --> MotorFeedback
+@enduml
