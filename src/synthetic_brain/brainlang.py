@@ -123,7 +123,11 @@ class Parser:
     def statement(self) -> dict[str, Any]:
         v = self.current.value
         if v in {"var", "let", "const"}:
-            self.advance(); name = self.name(); self.expect("="); value = self.expression(); self.accept(";")
+            self.advance()
+            name = self.name()
+            self.expect("=")
+            value = self.expression()
+            self.accept(";")
             return {"type": "var", "name": name, "value": value}
         if v == "return":
             self.advance()
@@ -131,36 +135,57 @@ class Parser:
             self.accept(";")
             return {"type": "return", "value": value}
         if v == "fn":
-            self.advance(); name = self.name(); params = self.parameters(); body = self.block()
+            self.advance()
+            name = self.name()
+            params = self.parameters()
+            body = self.block()
             return {"type": "fn", "name": name, "params": params, "body": body}
         if v == "class":
-            self.advance(); name = self.name(); parent = None
+            self.advance()
+            name = self.name()
+            parent = None
             if self.accept("extends"):
                 parent = self.name()
             body = self.block()
             return {"type": "class", "name": name, "parent": parent, "body": body}
         if v == "brain":
-            self.advance(); name = self.name(); body = self.block()
+            self.advance()
+            name = self.name()
+            body = self.block()
             return {"type": "brain", "name": name, "body": body}
         if v == "population":
-            self.advance(); name = self.name(); attrs = self.attributes()
+            self.advance()
+            name = self.name()
+            attrs = self.attributes()
             return {"type": "population", "name": name, "attrs": attrs}
         if v == "connect":
-            self.advance(); source = self.name(); self.expect("->"); target = self.name(); attrs = self.attributes()
+            self.advance()
+            source = self.name()
+            self.expect("->")
+            target = self.name()
+            attrs = self.attributes()
             return {"type": "connect", "source": source, "target": target, "attrs": attrs}
         if v == "if":
-            self.advance(); condition = self.expression(); yes = self.block(); no = self.block() if self.accept("else") else []
+            self.advance()
+            condition = self.expression()
+            yes = self.block()
+            no = self.block() if self.accept("else") else []
             return {"type": "if", "condition": condition, "yes": yes, "no": no}
         if v == "while":
-            self.advance(); condition = self.expression(); return {"type": "while", "condition": condition, "body": self.block()}
+            self.advance()
+            condition = self.expression()
+            return {"type": "while", "condition": condition, "body": self.block()}
         if v == "step":
-            self.advance(); duration = self.expression(); self.accept(";")
+            self.advance()
+            duration = self.expression()
+            self.accept(";")
             return {"type": "step", "duration": duration}
         expr = self.expression(); self.accept(";")
         return {"type": "expr", "value": expr}
 
     def parameters(self) -> list[str]:
-        self.expect("("); params = []
+        self.expect("(")
+        params = []
         if self.current.value != ")":
             while True:
                 params.append(self.name())
@@ -213,7 +238,9 @@ class Parser:
         if token.value in {"true", "false", "null"}:
             return {"type": "literal", "value": {"true": True, "false": False, "null": None}[token.value]}
         if token.value == "(":
-            value = self.expression(); self.expect(")"); return value
+            value = self.expression()
+            self.expect(")")
+            return value
         if token.kind in {"name", "keyword"}:
             node: dict[str, Any] = {"type": "name", "name": token.value}
             while True:
@@ -314,8 +341,10 @@ class BrainRuntime:
                 local = Environment(env)
                 for index, name in enumerate(node["params"]):
                     local.define(name, args[index] if index < len(args) else None)
-                try: return self.execute_block(node["body"], local)
-                except ReturnSignal as signal: return signal.value
+                try:
+                    return self.execute_block(node["body"], local)
+                except ReturnSignal as signal:
+                    return signal.value
             env.define(node["name"], function); return function
         if kind == "class":
             cls = BrainClass(node["name"])
