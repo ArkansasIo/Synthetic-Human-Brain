@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from time import perf_counter
 
 from synthetic_brain.cl1_analysis import FiringStats, firing_stats
 from synthetic_brain.cl1_clone import BurstDesign, ChannelSet, LoopTick, Neurons, StimDesign
-from synthetic_brain.cl1_recording import RecordingDataset, RecordingMetadata, RecordingWriter
+from synthetic_brain.cl1_recording import RecordingMetadata, RecordingWriter
 
 
 @dataclass(frozen=True, slots=True)
