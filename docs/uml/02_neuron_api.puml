@@ -1,0 +1,13 @@
+@startuml
+interface Neuron { +step(dt) +reset() +inject_current(i) +spike(): SpikeEvent }
+class MembraneState
+class Dendrite
+class Soma
+class Axon
+class SpikeEvent
+Neuron --> MembraneState
+Neuron o-- Dendrite
+Neuron o-- Soma
+Neuron o-- Axon
+Neuron --> SpikeEvent
+@enduml
