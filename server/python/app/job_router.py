@@ -8,14 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .models import Worker
 from .worker_registry import list_available_workers, worker_is_stale
 
-
 @dataclass(frozen=True)
 class WorkerSelection:
     worker_id: str
     backend: str
+    endpoint_url: str | None
     score: int
     reason: str
-
 
 def _capability_score(worker: Worker, operation: str, payload: dict[str, Any]) -> int:
     capabilities = worker.capabilities_json or {}
@@ -35,25 +34,15 @@ def _capability_score(worker: Worker, operation: str, payload: dict[str, Any]) -
         score += 5
     return score
 
-
-async def select_worker(
-    session: AsyncSession,
-    *,
-    operation: str,
-    payload: dict[str, Any],
-    backend: str = "auto",
-) -> WorkerSelection | None:
-    candidates = await list_available_workers(session, backend)
-    candidates = [worker for worker in candidates if not worker_is_stale(worker)]
+async def select_worker(session: AsyncSession, *, operation: str, payload: dict[str, Any], backend: str = "auto") -> WorkerSelection | None:
+    candidates = [w for w in await list_available_workers(session, backend) if not worker_is_stale(w)]
     if not candidates:
         return None
-
-    ranked = sorted(candidates, key=lambda worker: _capability_score(worker, operation, payload), reverse=True)
-    selected = ranked[0]
-    score = _capability_score(selected, operation, payload)
+    selected = max(candidates, key=lambda worker: _capability_score(worker, operation, payload))
     return WorkerSelection(
         worker_id=selected.id,
         backend=selected.backend,
-        score=score,
+        endpoint_url=selected.endpoint_url,
+        score=_capability_score(selected, operation, payload),
         reason="capability-and-health ranking",
     )
