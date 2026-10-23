@@ -1,0 +1,12 @@
+Synthetic Human Brain Project — Software License
+
+Copyright (c) 2026 ArkansasIo / Synthetic Human Brain Project contributors.
+
+Unless a more specific license or notice applies to a particular component, the original software source code in this repository is licensed under the Apache License, Version 2.0.
+
+You may obtain a copy of the Apache License, Version 2.0 at:
+https://www.apache.org/licenses/LICENSE-2.0
+
+This file is intended to establish the project's default software licensing boundary. Hardware designs, datasets, third-party materials, and proprietary external systems may have separate terms documented under LICENSES/.
+
+SPDX-License-Identifier: Apache-2.0
