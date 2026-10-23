@@ -1,54 +1,158 @@
 openapi: 3.0.3
 info:
   title: Synthetic Human Brain Research Server API
-  version: 0.1.0
+  version: 0.1.0-alpha
+  description: Python public API for browser and desktop research stations. Rust workers remain behind the server boundary.
 servers:
   - url: /api/v1
+security:
+  - bearerAuth: []
 paths:
   /health:
     get:
+      security: []
       responses:
-        '200':
-          description: Server health
-  /auth/login:
+        '200': { description: Server health }
+  /about:
+    get:
+      security: []
+      responses:
+        '200': { description: Build and platform metadata }
+  /auth/register:
     post:
+      security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/LoginRequest' }
+            schema: { $ref: '#/components/schemas/AuthRequest' }
+      responses:
+        '200': { description: Registered and authenticated }
+        '409': { description: Username already exists }
+  /auth/login:
+    post:
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthRequest' }
       responses:
         '200': { description: Authenticated session }
+        '401': { description: Invalid credentials }
+  /auth/logout:
+    post:
+      responses:
+        '200': { description: Logout audit recorded }
+  /me:
+    get:
+      responses:
+        '200': { description: Current researcher profile }
   /projects:
     get:
       responses:
         '200': { description: Projects visible to the authenticated researcher }
     post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjectCreate' }
       responses:
-        '201': { description: Project created }
-  /experiments:
+        '200': { description: Project created }
+  /projects/{project_id}/experiments:
+    parameters:
+      - { name: project_id, in: path, required: true, schema: { type: string, format: uuid } }
     get:
       responses:
-        '200': { description: Experiments visible to the researcher }
+        '200': { description: Project experiments }
     post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExperimentCreate' }
       responses:
-        '201': { description: Experiment created }
+        '200': { description: Experiment created }
+  /experiments/{experiment_id}/jobs:
+    parameters:
+      - { name: experiment_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JobCreate' }
+      responses:
+        '200': { description: Job queued }
   /jobs:
     get:
       responses:
         '200': { description: Jobs visible to the researcher }
-    post:
+  /experiments/{experiment_id}/telemetry:
+    parameters:
+      - { name: experiment_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 5000, default: 500 } }
       responses:
-        '202': { description: Job accepted }
-  /sessions:
+        '200': { description: Telemetry events }
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TelemetryCreate' }
+      responses:
+        '200': { description: Telemetry event recorded }
+  /admin/servers:
     get:
       responses:
-        '200': { description: Active desktop sessions }
+        '200': { description: Administrator server inventory }
+  /admin/workers:
+    get:
+      responses:
+        '200': { description: Administrator worker inventory }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
-    LoginRequest:
+    AuthRequest:
       type: object
       required: [username, password]
       properties:
-        username: { type: string }
-        password: { type: string, format: password }
+        username: { type: string, minLength: 1, maxLength: 128 }
+        password: { type: string, format: password, minLength: 1 }
+        display_name: { type: string }
+        client_id: { type: string }
+        platform: { type: string, enum: [windows, macos, linux, browser] }
+    ProjectCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        visibility: { type: string, enum: [private, project, server] }
+    ExperimentCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        backend: { type: string, enum: [python, rust, hybrid, auto] }
+        configuration: { type: object, additionalProperties: true }
+    JobCreate:
+      type: object
+      required: [operation]
+      properties:
+        operation: { type: string }
+        payload: { type: object, additionalProperties: true }
+    TelemetryCreate:
+      type: object
+      required: [metric, value]
+      properties:
+        metric: { type: string }
+        value: { type: number, format: double }
+        metadata: { type: object, additionalProperties: true }
