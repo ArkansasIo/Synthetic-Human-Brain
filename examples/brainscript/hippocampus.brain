@@ -1,0 +1,20 @@
+// BrainScript example: simplified hippocampal circuit declaration.
+
+brain Hippocampus {
+    population DentateGyrus size 1000
+    population CA3 size 3000
+    population CA1 size 3000
+    population Subiculum size 1500
+
+    connect DentateGyrus -> CA3 weight 0.35 delay 2.0
+    connect CA3 -> CA1 weight 0.50 delay 2.5
+    connect CA1 -> Subiculum weight 0.40 delay 3.0
+}
+
+fn encode(pattern, gain) {
+    return pattern * gain
+}
+
+var encoded = encode(0.75, 1.2)
+print(encoded)
+step 1.0
