@@ -38,7 +38,7 @@ struct StepResponse { spike: bool, simulation_time_ms: f64, spikes_emitted: u64 
 struct JobRequest { job_id: String, operation: String, payload: Option<serde_json::Value> }
 
 #[derive(Debug, Serialize)]
-struct JobResponse { accepted: bool, job_id: String, operation: String, status: &'static str, payload: Option<serde_json::Value> }
+struct JobResponse { accepted: bool, job_id: String, operation: String, status: &'static str, payload: serde_json::Value }
 
 #[tokio::main]
 async fn main() {
@@ -74,8 +74,43 @@ async fn step(State(state): State<AppState>, Json(request): Json<StepRequest>) -
     Json(StepResponse { spike, simulation_time_ms: service.simulation_time_ms, spikes_emitted: service.spikes_emitted })
 }
 
-async fn run_job(Json(request): Json<JobRequest>) -> Json<JobResponse> {
-    Json(JobResponse { accepted: true, job_id: request.job_id, operation: request.operation, status: "accepted", payload: request.payload })
+async fn run_job(State(state): State<AppState>, Json(request): Json<JobRequest>) -> Json<JobResponse> {
+    let payload = request.payload.unwrap_or_else(|| serde_json::json!({}));
+    match request.operation.as_str() {
+        "simulation.step" => {
+            let input_current = payload.get("input_current").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+            let dt_ms = payload.get("dt_ms").and_then(serde_json::Value::as_f64).unwrap_or(1.0);
+            let mut service = state.service.lock().expect("backend service lock poisoned");
+            let spike = service.step(input_current, dt_ms);
+            let result = serde_json::json!({
+                "spike": spike,
+                "simulation_time_ms": service.simulation_time_ms,
+                "spikes_emitted": service.spikes_emitted
+            });
+            Json(JobResponse { accepted: true, job_id: request.job_id, operation: request.operation, status: "completed", payload: result })
+        }
+        "simulation.run" => {
+            let steps = payload.get("steps").and_then(serde_json::Value::as_u64).unwrap_or(1).min(100_000);
+            let input_current = payload.get("input_current").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+            let dt_ms = payload.get("dt_ms").and_then(serde_json::Value::as_f64).unwrap_or(1.0);
+            let mut service = state.service.lock().expect("backend service lock poisoned");
+            let mut spikes = 0_u64;
+            for _ in 0..steps {
+                if service.step(input_current, dt_ms) { spikes += 1; }
+            }
+            let result = serde_json::json!({
+                "steps": steps,
+                "spikes_in_run": spikes,
+                "simulation_time_ms": service.simulation_time_ms,
+                "spikes_emitted": service.spikes_emitted
+            });
+            Json(JobResponse { accepted: true, job_id: request.job_id, operation: request.operation, status: "completed", payload: result })
+        }
+        _ => {
+            let result = serde_json::json!({"error": "unsupported_operation", "operation": request.operation});
+            Json(JobResponse { accepted: false, job_id: request.job_id, operation: request.operation, status: "rejected", payload: result })
+        }
+    }
 }
 
 async fn websocket(upgrade: WebSocketUpgrade) -> impl IntoResponse { upgrade.on_upgrade(handle_socket) }
