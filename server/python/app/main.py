@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -311,8 +312,8 @@ async def submit_job(experiment_id: str, request: JobCreate, user: User = Depend
     try:
         result = await dispatch_job(job.id, job.operation, job.payload_json or {})
         job.result_json = result
-        job.status = "completed" if result.get("status") == "completed" or result.get("accepted") else "failed"
-        await write_audit(session, user.id, "job.complete", "job", job.id, {"status": job.status})
+        job.status = "completed" if result.get("status") == "completed" else "failed"
+        await write_audit(session, user.id, "job.complete" if job.status == "completed" else "job.failed", "job", job.id, {"status": job.status})
         await session.commit()
     except (httpx.HTTPError, ValueError) as exc:
         job.status = "failed"
