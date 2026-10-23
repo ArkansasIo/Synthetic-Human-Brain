@@ -17,11 +17,7 @@ struct AppState {
 }
 
 #[derive(Debug, Serialize)]
-struct HealthResponse {
-    status: &'static str,
-    service: &'static str,
-    version: &'static str,
-}
+struct HealthResponse { status: &'static str, service: &'static str, version: &'static str }
 
 #[derive(Debug, Serialize)]
 struct AboutResponse {
@@ -33,92 +29,65 @@ struct AboutResponse {
 }
 
 #[derive(Debug, Deserialize)]
-struct StepRequest {
-    input_current: f64,
-    dt_ms: f64,
-}
+struct StepRequest { input_current: f64, dt_ms: f64 }
 
 #[derive(Debug, Serialize)]
-struct StepResponse {
-    spike: bool,
-    simulation_time_ms: f64,
-    spikes_emitted: u64,
-}
+struct StepResponse { spike: bool, simulation_time_ms: f64, spikes_emitted: u64 }
+
+#[derive(Debug, Deserialize)]
+struct JobRequest { job_id: String, operation: String, payload: Option<serde_json::Value> }
+
+#[derive(Debug, Serialize)]
+struct JobResponse { accepted: bool, job_id: String, operation: String, status: &'static str, payload: Option<serde_json::Value> }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().with_env_filter("info").init();
-
-    let state = AppState {
-        service: Arc::new(Mutex::new(BackendService::new())),
-    };
-
+    let state = AppState { service: Arc::new(Mutex::new(BackendService::new())) };
     let app = Router::new()
         .route("/health", get(health))
         .route("/api/v1/health", get(health))
         .route("/api/v1/about", get(about))
         .route("/api/v1/simulation/step", post(step))
+        .route("/api/v1/jobs", post(run_job))
         .route("/ws", get(websocket))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state);
-
-    let address = std::env::var("SYNTHETIC_BRAIN_RUST_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:7800".to_string());
-    let listener = tokio::net::TcpListener::bind(&address)
-        .await
-        .expect("failed to bind Rust server");
-
+    let address = std::env::var("SYNTHETIC_BRAIN_RUST_ADDR").unwrap_or_else(|_| "0.0.0.0:7800".to_string());
+    let listener = tokio::net::TcpListener::bind(&address).await.expect("failed to bind Rust server");
     info!(%address, "Synthetic Brain Rust server started");
     axum::serve(listener, app).await.expect("Rust server stopped");
 }
 
 async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse {
-        status: "ok",
-        service: "synthetic-brain-rust-server",
-        version: "0.1.0-alpha",
-    })
+    Json(HealthResponse { status: "ok", service: "synthetic-brain-rust-server", version: "0.1.0-alpha" })
 }
 
 async fn about() -> Json<AboutResponse> {
-    Json(AboutResponse {
-        name: "Synthetic Human Brain",
-        version: "0.1.0-alpha",
-        developer: "ArkansasIo",
-        role: "Rust simulation and worker backend",
-        platforms: ["windows", "macos", "linux"],
-    })
+    Json(AboutResponse { name: "Synthetic Human Brain", version: "0.1.0-alpha", developer: "ArkansasIo", role: "Rust simulation and worker backend", platforms: ["windows", "macos", "linux"] })
 }
 
 async fn step(State(state): State<AppState>, Json(request): Json<StepRequest>) -> Json<StepResponse> {
     let mut service = state.service.lock().expect("backend service lock poisoned");
     let spike = service.step(request.input_current, request.dt_ms);
-    Json(StepResponse {
-        spike,
-        simulation_time_ms: service.simulation_time_ms,
-        spikes_emitted: service.spikes_emitted,
-    })
+    Json(StepResponse { spike, simulation_time_ms: service.simulation_time_ms, spikes_emitted: service.spikes_emitted })
 }
 
-async fn websocket(upgrade: WebSocketUpgrade) -> impl IntoResponse {
-    upgrade.on_upgrade(handle_socket)
+async fn run_job(Json(request): Json<JobRequest>) -> Json<JobResponse> {
+    Json(JobResponse { accepted: true, job_id: request.job_id, operation: request.operation, status: "accepted", payload: request.payload })
 }
+
+async fn websocket(upgrade: WebSocketUpgrade) -> impl IntoResponse { upgrade.on_upgrade(handle_socket) }
 
 async fn handle_socket(mut socket: WebSocket) {
     while let Some(Ok(message)) = socket.recv().await {
         match message {
             Message::Text(text) => {
                 let response = format!("{{\"type\":\"ack\",\"message\":{text}}}");
-                if socket.send(Message::Text(response.into())).await.is_err() {
-                    break;
-                }
+                if socket.send(Message::Text(response.into())).await.is_err() { break; }
             }
-            Message::Ping(payload) => {
-                if socket.send(Message::Pong(payload)).await.is_err() {
-                    break;
-                }
-            }
+            Message::Ping(payload) => { if socket.send(Message::Pong(payload)).await.is_err() { break; } }
             Message::Close(_) => break,
             _ => {}
         }
