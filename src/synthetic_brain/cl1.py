@@ -3,17 +3,14 @@
 This module keeps the synthetic-brain simulator independent from the optional
 Cortical Labs ``cl`` package while providing a small adapter for experiments
 that use a real CL1 or the CL SDK Simulator.
-
-The adapter deliberately does not prescribe biological stimulation parameters.
-Experiment-specific stimulation, safety limits, and approvals remain outside
-this research library.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from time import time_ns
-from typing import Any, Callable, Iterable, Protocol, Sequence
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,11 +51,7 @@ class CL1Connection(Protocol):
 
 
 class CL1Bridge:
-    """Optional bridge from the synthetic brain to the Cortical Labs CL API.
-
-    The package is imported lazily so installing ``synthetic-brain`` does not
-    require CL1 hardware or the proprietary/optional ``cl`` SDK.
-    """
+    """Optional bridge from the synthetic brain to the Cortical Labs CL API."""
 
     def __init__(self, neurons: CL1Connection, *, simulator: bool = False) -> None:
         self.neurons = neurons
@@ -66,11 +59,6 @@ class CL1Bridge:
 
     @classmethod
     def open(cls, *, take_control: bool = True, wait_until_recordable: bool = True) -> "CL1Bridge":
-        """Open a CL1/SDK connection through ``cl.open()``.
-
-        Raises ``ImportError`` with an actionable message when the CL SDK is
-        not installed.
-        """
         try:
             import cl  # type: ignore[import-not-found]
         except ImportError as exc:
@@ -78,18 +66,13 @@ class CL1Bridge:
                 "The Cortical Labs CL API is optional. Install the CL SDK on "
                 "a development system or run this adapter on a CL1 device."
             ) from exc
-
-        connection = cl.open(
-            take_control=take_control,
-            wait_until_recordable=wait_until_recordable,
-        )
+        connection = cl.open(take_control=take_control, wait_until_recordable=wait_until_recordable)
         neurons = connection.__enter__()
         bridge = cls(neurons, simulator=bool(cl.is_simulator()))
         bridge._context = connection
         return bridge
 
     def close(self) -> None:
-        """Close a connection opened by :meth:`open`."""
         context = getattr(self, "_context", None)
         if context is not None:
             context.__exit__(None, None, None)
@@ -102,11 +85,9 @@ class CL1Bridge:
         self.close()
 
     def record(self, **kwargs: Any) -> Any:
-        """Start a CL1 recording using the underlying SDK arguments."""
         return self.neurons.record(**kwargs)
 
     def stimulate(self, channels: Any, stim_design: Any, burst_design: Any = None) -> None:
-        """Forward an explicitly configured stimulation to the CL API."""
         self.neurons.stim(channels, stim_design, burst_design)
 
     def closed_loop(
@@ -118,11 +99,6 @@ class CL1Bridge:
         on_tick: Callable[[CL1Tick], None] | None = None,
         **loop_kwargs: Any,
     ) -> list[CL1Tick]:
-        """Run a CL1 closed loop and normalize spike/stim events.
-
-        ``on_tick`` is invoked immediately after normalization, making this a
-        convenient boundary for a synthetic-brain controller or experiment.
-        """
         ticks: list[CL1Tick] = []
         loop = self.neurons.loop(
             ticks_per_second,
@@ -132,23 +108,9 @@ class CL1Bridge:
         )
         for raw_tick in loop:
             analysis = raw_tick.analysis
-            spikes = tuple(
-                CL1Spike(timestamp=int(spike.timestamp), channel=int(spike.channel))
-                for spike in analysis.spikes
-            )
-            stims = tuple(
-                CL1Stimulus(
-                    timestamp=int(stim.timestamp),
-                    channel=int(stim.channel),
-                )
-                for stim in analysis.stims
-            )
-            tick = CL1Tick(
-                iteration=int(raw_tick.iteration),
-                timestamp=int(raw_tick.iteration_timestamp),
-                spikes=spikes,
-                stims=stims,
-            )
+            spikes = tuple(CL1Spike(int(spike.timestamp), int(spike.channel)) for spike in analysis.spikes)
+            stims = tuple(CL1Stimulus(int(stim.timestamp), int(stim.channel)) for stim in analysis.stims)
+            tick = CL1Tick(int(raw_tick.iteration), int(raw_tick.iteration_timestamp), spikes, stims)
             ticks.append(tick)
             if on_tick is not None:
                 on_tick(tick)
@@ -165,7 +127,6 @@ def cl1_available() -> bool:
 
 
 def monotonic_event_timestamp() -> int:
-    """Return a local nanosecond timestamp for simulator-side event logging."""
     return time_ns()
 
 
