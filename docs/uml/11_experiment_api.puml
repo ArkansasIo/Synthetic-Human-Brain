@@ -1,0 +1,15 @@
+@startuml
+class Experiment { +configure() +run() +finalize() }
+class Stimulus
+class Recording
+class Measurement
+class Analysis
+class Dataset
+class Provenance
+Experiment o-- Stimulus
+Experiment o-- Recording
+Recording o-- Measurement
+Experiment o-- Analysis
+Analysis --> Dataset
+Dataset o-- Provenance
+@enduml
