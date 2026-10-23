@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: Synthetic Human Brain Research Server API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      responses:
+        '200':
+          description: Server health
+  /auth/login:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200': { description: Authenticated session }
+  /projects:
+    get:
+      responses:
+        '200': { description: Projects visible to the authenticated researcher }
+    post:
+      responses:
+        '201': { description: Project created }
+  /experiments:
+    get:
+      responses:
+        '200': { description: Experiments visible to the researcher }
+    post:
+      responses:
+        '201': { description: Experiment created }
+  /jobs:
+    get:
+      responses:
+        '200': { description: Jobs visible to the researcher }
+    post:
+      responses:
+        '202': { description: Job accepted }
+  /sessions:
+    get:
+      responses:
+        '200': { description: Active desktop sessions }
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string, format: password }
