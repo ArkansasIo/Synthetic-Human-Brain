@@ -149,7 +149,8 @@ class Neurons:
 
     def stim(self, channels: ChannelSet | int, stim_design: StimDesign | float, burst_design: BurstDesign | None = None, lead_time_us: int = 80) -> None:
         channel_set = ChannelSet(channels) if isinstance(channels, int) else ChannelSet(channels)
-        design = stim_design if isinstance(stim_design, StimDesign) else StimDesign(160, -float(stim_design), 160, float(stim_design))
+        if not isinstance(stim_design, StimDesign):
+            stim_design = StimDesign(160, -float(stim_design), 160, float(stim_design))
         burst = burst_design or BurstDesign(1, 1)
         spacing = max(1, int(SAMPLE_RATE_HZ / burst.frequency_hz))
         start = self._timestamp + max(0, int(lead_time_us * SAMPLE_RATE_HZ / 1_000_000))
