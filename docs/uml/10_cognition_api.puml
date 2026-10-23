@@ -1,0 +1,15 @@
+@startuml
+class Attention
+class WorkingMemory
+class EpisodicMemory
+class SemanticMemory
+class DecisionProcess
+class Planner
+class PredictiveModel
+Attention --> WorkingMemory
+WorkingMemory --> DecisionProcess
+EpisodicMemory --> PredictiveModel
+SemanticMemory --> PredictiveModel
+PredictiveModel --> DecisionProcess
+Planner --> DecisionProcess
+@enduml
