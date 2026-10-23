@@ -1,0 +1,13 @@
+@startuml
+interface PlasticityRule { +update(pre, post, dt) }
+class Hebbian
+class Oja
+class BCM
+class STDP
+class Homeostatic
+PlasticityRule <|-- Hebbian
+PlasticityRule <|-- Oja
+PlasticityRule <|-- BCM
+PlasticityRule <|-- STDP
+PlasticityRule <|-- Homeostatic
+@enduml
