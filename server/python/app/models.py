@@ -75,8 +75,8 @@ class Server(Base):
     __tablename__ = "servers"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String(255))
-    host: Mapped[str] = mapped_column(String(255))
-    port: Mapped[int]
+    host: Mapped[str] = mapped_column(String(255), default="127.0.0.1")
+    port: Mapped[int] = mapped_column(default=8787)
     endpoint_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     platform: Mapped[str] = mapped_column(String(32), default="linux")
     status: Mapped[str] = mapped_column(String(32), default="offline")
