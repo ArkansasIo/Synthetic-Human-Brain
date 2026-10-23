@@ -1,0 +1,11 @@
+@startuml
+interface Synapse { +transmit() +update_weight(dt) }
+class ExcitatorySynapse
+class InhibitorySynapse
+class SynapticState
+class Neurotransmitter
+Synapse <|-- ExcitatorySynapse
+Synapse <|-- InhibitorySynapse
+Synapse o-- SynapticState
+Synapse --> Neurotransmitter
+@enduml
