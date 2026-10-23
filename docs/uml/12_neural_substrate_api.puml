@@ -1,0 +1,11 @@
+@startuml
+interface NeuralSubstrate { +initialize() +stimulate() +record() +synchronize() +step() +reset() +shutdown() }
+class SyntheticWholeBrain
+class ReplayBackend
+class CL1SimulatorBackend
+class CL1BiologicalBackend
+NeuralSubstrate <|-- SyntheticWholeBrain
+NeuralSubstrate <|-- ReplayBackend
+NeuralSubstrate <|-- CL1SimulatorBackend
+NeuralSubstrate <|-- CL1BiologicalBackend
+@enduml
