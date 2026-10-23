@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synthetic Human Brain — Research IDE</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="chrome">
+    <div class="brand">Synthetic Human Brain</div>
+    <nav class="menus">
+      <button>File ▾</button><button>Edit ▾</button><button>View ▾</button>
+      <button>Brain ▾</button><button>Simulation ▾</button><button>Experiments ▾</button>
+      <button>Data ▾</button><button>Tools ▾</button><button id="aboutButton">Help ▾</button>
+    </nav>
+    <div class="build-badge" id="buildBadge">Loading build…</div>
+  </header>
+
+  <div class="browser-tabs">
+    <button class="tab active">Brain</button><button class="tab">Region</button>
+    <button class="tab">Algorithms</button><button class="tab">Simulation</button>
+    <button class="tab">CL1</button><button class="tab">BrainScript</button>
+  </div>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <div class="side-title">BRAIN API</div>
+      <button class="nav active">Overview</button><button class="nav">Anatomy</button>
+      <button class="nav">Neurons</button><button class="nav">Synapses</button>
+      <button class="nav">Connectivity</button><button class="nav">Dynamics</button>
+      <button class="nav">Plasticity</button><button class="nav">Cognition</button>
+      <button class="nav">CL1 Interface</button><button class="nav">BrainScript</button>
+      <button class="nav">Experiments</button><button class="nav">Telemetry</button>
+    </aside>
+
+    <section class="main-panel">
+      <div class="toolbar"><button>▶ Run</button><button>Ⅱ Pause</button><button>Step</button><button>Reset</button><span class="spacer"></span><span>SIMULATION: READY</span></div>
+      <div class="dashboard">
+        <section class="panel graph"><div class="panel-head">Neural Activity <span>LIVE</span></div><div class="graph-area"><div class="wave"></div><div class="axis">0 ms&nbsp;&nbsp;&nbsp;&nbsp; 250&nbsp;&nbsp;&nbsp;&nbsp; 500&nbsp;&nbsp;&nbsp;&nbsp; 750&nbsp;&nbsp;&nbsp;&nbsp; 1000 ms</div></div></section>
+        <section class="panel telemetry"><div class="panel-head">Telemetry</div><dl><dt>Simulation time</dt><dd>0.000 ms</dd><dt>Event throughput</dt><dd>0 events/s</dd><dt>Spike count</dt><dd>0</dd><dt>Queue depth</dt><dd>0</dd><dt>CPU</dt><dd>—</dd><dt>Memory</dt><dd>—</dd></dl></section>
+        <section class="panel"><div class="panel-head">API Inspector</div><div class="kv"><b>Endpoint</b><span>/api/about</span><b>Build</b><span id="buildValue">—</span><b>Developer</b><span id="developerValue">—</span><b>Channel</b><span id="channelValue">—</span></div></section>
+        <section class="panel"><div class="panel-head">Event Log</div><pre id="log">[system] UI initialized
+[system] Awaiting simulation backend…</pre></section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="aboutDialog"><h2>Synthetic Human Brain</h2><table><tbody id="aboutTable"></tbody></table><p class="muted">Research software platform. Simulation outputs are not biological measurements.</p><button id="closeAbout">Close</button></dialog>
+  <script src="./app.js"></script>
+</body>
+</html>
