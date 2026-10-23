@@ -1,0 +1,11 @@
+@startuml
+class Simulation { +run() +step(dt) +reset() }
+class SimulationClock { +time +dt }
+class EventQueue { +push(event) +pop() }
+class Scheduler { +schedule(event) }
+class SimulationState
+Simulation *-- SimulationClock
+Simulation *-- EventQueue
+Simulation *-- Scheduler
+Simulation o-- SimulationState
+@enduml
