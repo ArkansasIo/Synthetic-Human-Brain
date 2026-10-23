@@ -1,0 +1,15 @@
+@startuml
+interface SensorySystem { +ingest(sample) +emit_event() }
+class Vision
+class Auditory
+class Somatosensory
+class Olfactory
+class Gustatory
+class Vestibular
+SensorySystem <|-- Vision
+SensorySystem <|-- Auditory
+SensorySystem <|-- Somatosensory
+SensorySystem <|-- Olfactory
+SensorySystem <|-- Gustatory
+SensorySystem <|-- Vestibular
+@enduml
