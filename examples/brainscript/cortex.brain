@@ -1,0 +1,32 @@
+// BrainScript example: cortical population and learning experiment.
+// File extension: .brain
+
+const LEARNING_RATE = 0.01
+
+brain Cortex {
+    population Excitatory size 100
+    population Inhibitory size 25
+    connect Excitatory -> Inhibitory weight 0.20 delay 1.5
+    connect Inhibitory -> Excitatory weight -0.15 delay 1.0
+}
+
+class Neuron {
+    fn init(threshold) {
+        this.threshold = threshold
+    }
+
+    fn fires(input) {
+        if input >= this.threshold {
+            return true
+        }
+        return false
+    }
+}
+
+fn reward(value, target) {
+    return target - value
+}
+
+var error = reward(0.35, 1.0)
+print(error)
+step 1.0
