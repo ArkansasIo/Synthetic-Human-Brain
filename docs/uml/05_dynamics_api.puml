@@ -1,0 +1,15 @@
+@startuml
+interface NeuralDynamics { +step(state, input, dt) +validate_parameters() }
+class LIF
+class AdEx
+class Izhikevich
+class HodgkinHuxley
+class WilsonCowan
+class Kuramoto
+NeuralDynamics <|-- LIF
+NeuralDynamics <|-- AdEx
+NeuralDynamics <|-- Izhikevich
+NeuralDynamics <|-- HodgkinHuxley
+NeuralDynamics <|-- WilsonCowan
+NeuralDynamics <|-- Kuramoto
+@enduml
