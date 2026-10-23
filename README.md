@@ -5,6 +5,7 @@ A research-oriented software scaffold for exploring **synthetic neural systems**
 ## Project goals
 
 - Provide modular neural-network simulation primitives and a network-driven simulation engine.
+- Provide research-backed computational neuroscience algorithms at cellular, synaptic, population, learning, and memory levels.
 - Separate simulation state, model configuration, experiments, and visualization.
 - Make experiments reproducible through explicit configuration and seeded randomness.
 - Document assumptions, limitations, safety, and validation criteria.
@@ -12,7 +13,15 @@ A research-oriented software scaffold for exploring **synthetic neural systems**
 
 ## Current status
 
-**Early research prototype.** The repository includes an abstract ring-network reference simulator, a directed weighted connectivity graph, pluggable neuron and synapse interfaces, and a graph-driven engine that applies weighted connections and advances all units synchronously. The code is not a medically validated model, a consciousness implementation, a brain-computer interface, or a substitute for biological data or expert review.
+**Research prototype — algorithm suite v0.2.0.** The repository now includes an abstract network simulator plus a standalone computational-neuroscience algorithm library. The library includes LIF, AdEx, Izhikevich, and Hodgkin-Huxley neuron dynamics; conductance and short-term synapse models; Hebbian/Oja/BCM/STDP/homeostatic plasticity; Wilson-Cowan and Kuramoto population dynamics; normalization and softmax; temporal-difference learning; predictive-error updates; Hopfield memory; working-memory traces; cable diffusion; and reproducible Poisson spike trains.
+
+The implementation is **not** a complete human-brain simulation. It is a composable toolbox from which progressively larger, data-constrained models can be built.
+
+## Research basis
+
+The design follows the multiscale approach used in computational neuroscience. The Human Brain Project describes modeling from molecular and subcellular levels through cells, networks, and whole-brain models, while noting the computational challenge of full human-scale cellular simulation. Blue Brain similarly documents workflows for morphology, electrical models, cell types, synapses, connectivity, and large-scale simulation.
+
+See [Computational Neuroscience Algorithms](docs/COMPUTATIONAL_NEUROSCIENCE_ALGORITHMS.md) for equations, model families, scientific boundaries, and research references.
 
 ## Quick start
 
@@ -27,6 +36,20 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 python -m pytest
 python -m synthetic_brain
+```
+
+## Algorithm examples
+
+```python
+from synthetic_brain import HodgkinHuxleyNeuron, LIFNeuron, stdp_update
+
+lif = LIFNeuron()
+spiked = lif.step(current=3.0, dt=1.0)
+
+hh = HodgkinHuxleyNeuron()
+hh.step(current=5.0, dt=0.01)
+
+stronger = stdp_update(weight=0.5, delta_t=10.0)
 ```
 
 ## Network-driven simulation
@@ -59,6 +82,7 @@ Every step calculates connection signals from the prior activity snapshot and th
 ├── .github/workflows/ci.yml
 ├── docs/
 │   ├── ARCHITECTURE.md
+│   ├── COMPUTATIONAL_NEUROSCIENCE_ALGORITHMS.md
 │   ├── EXPERIMENTS.md
 │   ├── NETWORK_SIMULATION.md
 │   ├── PHASE_2.md
@@ -66,6 +90,7 @@ Every step calculates connection signals from the prior activity snapshot and th
 │   ├── SAFETY_AND_LIMITATIONS.md
 │   └── uml/
 ├── src/synthetic_brain/
+│   ├── algorithms.py
 │   ├── config.py
 │   ├── network.py
 │   ├── network_simulation.py
@@ -73,6 +98,8 @@ Every step calculates connection signals from the prior activity snapshot and th
 │   ├── simulation.py
 │   └── synapse.py
 ├── tests/
+│   ├── test_algorithms.py
+│   └── existing simulator tests
 └── pyproject.toml
 ```
 
@@ -90,7 +117,9 @@ Clearly distinguish measured data, model assumptions, simulated output, and hypo
 
 ## Roadmap
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for staged work on sparse networks, serialization, experiment tooling, validation, and optional high-performance backends.
+The next research layers are data-driven brain-region parcellation, morphology and compartmental cells, connectome ingestion, glia/metabolism, neuromodulatory systems, sensory/motor pathways, parameter fitting, benchmark experiments, uncertainty quantification, and optional HPC backends.
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for staged work.
 
 ## License
 
