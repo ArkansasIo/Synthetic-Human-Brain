@@ -1,0 +1,20 @@
+@startuml
+interface SensorArray
+interface SignalChannel
+interface AcquisitionDevice
+interface AmplifierInterface
+interface DigitizerInterface
+interface SignalStream
+interface ArtifactFilter
+interface RegionMapper
+interface StimulationInterface
+interface SynchronizationInterface
+SensorArray o-- SignalChannel
+AcquisitionDevice --> AmplifierInterface
+AcquisitionDevice --> DigitizerInterface
+DigitizerInterface --> SignalStream
+SignalStream --> ArtifactFilter
+ArtifactFilter --> RegionMapper
+SynchronizationInterface --> SignalStream
+StimulationInterface --> AcquisitionDevice
+@enduml
