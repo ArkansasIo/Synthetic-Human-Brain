@@ -1,12 +1,20 @@
+use std::sync::{Arc, Mutex};
+
 use axum::{
-    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use synthetic_brain_backend::BackendService;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
+
+#[derive(Clone)]
+struct AppState {
+    service: Arc<Mutex<BackendService>>,
+}
 
 #[derive(Debug, Serialize)]
 struct HealthResponse {
@@ -25,29 +33,35 @@ struct AboutResponse {
 }
 
 #[derive(Debug, Deserialize)]
-struct JobRequest {
-    operation: String,
-    payload: Option<serde_json::Value>,
+struct StepRequest {
+    input_current: f64,
+    dt_ms: f64,
 }
 
 #[derive(Debug, Serialize)]
-struct JobResponse {
-    accepted: bool,
-    operation: String,
-    payload: Option<serde_json::Value>,
+struct StepResponse {
+    spike: bool,
+    simulation_time_ms: f64,
+    spikes_emitted: u64,
 }
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt().with_env_filter("info").init();
+
+    let state = AppState {
+        service: Arc::new(Mutex::new(BackendService::new())),
+    };
 
     let app = Router::new()
+        .route("/health", get(health))
         .route("/api/v1/health", get(health))
         .route("/api/v1/about", get(about))
-        .route("/api/v1/jobs", post(submit_job))
+        .route("/api/v1/simulation/step", post(step))
         .route("/ws", get(websocket))
         .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .with_state(state);
 
     let address = std::env::var("SYNTHETIC_BRAIN_RUST_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:7800".to_string());
@@ -63,7 +77,7 @@ async fn health() -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ok",
         service: "synthetic-brain-rust-server",
-        version: "0.1.0",
+        version: "0.1.0-alpha",
     })
 }
 
@@ -77,11 +91,13 @@ async fn about() -> Json<AboutResponse> {
     })
 }
 
-async fn submit_job(Json(request): Json<JobRequest>) -> Json<JobResponse> {
-    Json(JobResponse {
-        accepted: true,
-        operation: request.operation,
-        payload: request.payload,
+async fn step(State(state): State<AppState>, Json(request): Json<StepRequest>) -> Json<StepResponse> {
+    let mut service = state.service.lock().expect("backend service lock poisoned");
+    let spike = service.step(request.input_current, request.dt_ms);
+    Json(StepResponse {
+        spike,
+        simulation_time_ms: service.simulation_time_ms,
+        spikes_emitted: service.spikes_emitted,
     })
 }
 
