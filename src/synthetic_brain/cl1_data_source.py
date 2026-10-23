@@ -9,9 +9,8 @@ models of living tissue or CL1 electronics.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Sequence
-import math
 import random
+from typing import Callable, Sequence
 
 SAMPLE_RATE_HZ = 25_000
 
@@ -125,7 +124,11 @@ class ReactiveDataSource(RandomDataSource):
             row: list[int] = []
             for channel in range(self.metadata.channel_count):
                 value = int(round(self.mean + self._rng.gauss(0.0, 8.0)))
-                probability = self.response_probability if timestamp < self._stim_until.get(channel, -1) else self.spike_probability
+                probability = (
+                    self.response_probability
+                    if timestamp < self._stim_until.get(channel, -1)
+                    else self.spike_probability
+                )
                 if self._rng.random() < probability:
                     value += self.spike_amplitude
                     spikes.append(DataSourceSpike(timestamp, channel))
@@ -152,7 +155,11 @@ class ModelDataSource(SimulatorDataSource):
         frames = tuple(tuple(int(value) for value in row) for row in raw)
         if len(frames) != frame_count or any(len(row) != self.metadata.channel_count for row in frames):
             raise ValueError("model frame factory returned invalid shape")
-        spikes = () if self.spike_factory is None else tuple(self.spike_factory(from_timestamp, frame_count, self.metadata.channel_count))
+        spikes = (
+            ()
+            if self.spike_factory is None
+            else tuple(self.spike_factory(from_timestamp, frame_count, self.metadata.channel_count))
+        )
         return DataSourceBatch(frames, spikes)
 
 
