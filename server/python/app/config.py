@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     version: str = "0.1.0-alpha"
     developer: str = "ArkansasIo"
     database_url: str = "mysql+asyncmy://synthetic_brain:CHANGE_ME@127.0.0.1:3306/synthetic_brain"
+    rust_backend_url: str = "http://127.0.0.1:7800"
     jwt_secret: str = "CHANGE_ME_IN_ENV"
     jwt_algorithm: str = "HS256"
     session_minutes: int = 480
