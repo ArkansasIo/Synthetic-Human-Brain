@@ -1,15 +1,9 @@
-"""Brain-region and mesoscale connectivity primitives.
-
-These abstractions represent anatomical regions and population-level
-connectivity. They are intentionally data-driven: they do not claim that a
-region is a single homogeneous computational unit.
-"""
-
+"""Brain-region and mesoscale connectivity primitives."""
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Iterable, List, Mapping, Sequence
 
 
 class BrainRegion(str, Enum):
@@ -27,13 +21,11 @@ class BrainRegion(str, Enum):
 
 @dataclass
 class NeuralPopulation:
-    """A population of model neurons within an anatomical region."""
-
     name: str
     size: int
     model: str = "LIF"
     region: BrainRegion = BrainRegion.CEREBRAL_CORTEX
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.size < 1:
@@ -42,8 +34,6 @@ class NeuralPopulation:
 
 @dataclass(frozen=True)
 class RegionConnection:
-    """Population-to-population connection specification."""
-
     source: str
     target: str
     probability: float
@@ -59,11 +49,9 @@ class RegionConnection:
 
 
 class BrainNetwork:
-    """A lightweight graph of populations and long-range connections."""
-
     def __init__(self) -> None:
-        self.populations: Dict[str, NeuralPopulation] = {}
-        self.connections: List[RegionConnection] = []
+        self.populations: dict[str, NeuralPopulation] = {}
+        self.connections: list[RegionConnection] = []
 
     def add_population(self, population: NeuralPopulation) -> None:
         if population.name in self.populations:
@@ -81,7 +69,7 @@ class BrainNetwork:
         return tuple(p for p in self.populations.values() if p.region == region)
 
     def adjacency(self) -> Mapping[str, Sequence[str]]:
-        result: Dict[str, List[str]] = {name: [] for name in self.populations}
+        result: dict[str, list[str]] = {name: [] for name in self.populations}
         for edge in self.connections:
             result[edge.source].append(edge.target)
         return result
@@ -94,4 +82,4 @@ class BrainNetwork:
 
 DEFAULT_REGIONS: tuple[BrainRegion, ...] = tuple(BrainRegion)
 
-__all__ = ["BrainRegion", "NeuralPopulation", "RegionConnection", "BrainNetwork", "DEFAULT_REGIONS"]
+__all__ = ["DEFAULT_REGIONS", "BrainNetwork", "BrainRegion", "NeuralPopulation", "RegionConnection"]
