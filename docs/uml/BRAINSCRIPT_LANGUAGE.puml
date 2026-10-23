@@ -1,0 +1,49 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class BrainScriptSource {
+  +text: str
+  +path: str
+}
+
+class Lexer {
+  +lex(source): Token[]
+}
+
+class Parser {
+  +program(): AST[]
+}
+
+class ASTNode {
+  +type: str
+  +children: ASTNode[]
+}
+
+class SemanticAnalyzer {
+  +validate(ast): Diagnostics
+}
+
+class BrainScriptRuntime {
+  +execute(source): Environment
+}
+
+class Environment {
+  +define(name, value)
+  +get(name)
+}
+
+class BrainRuntimeAdapter {
+  +step(dt)
+  +stimulate(request)
+  +record(request)
+}
+
+BrainScriptSource --> Lexer
+Lexer --> Parser
+Parser --> ASTNode
+ASTNode --> SemanticAnalyzer
+SemanticAnalyzer --> BrainScriptRuntime
+BrainScriptRuntime --> Environment
+BrainScriptRuntime --> BrainRuntimeAdapter
+
+@enduml
