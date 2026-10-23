@@ -1,8 +1,8 @@
 [package]
 name = "synthetic-brain-server"
-version = "0.1.0"
+version = "0.1.0-alpha"
 edition = "2021"
-description = "Cross-platform Rust worker/API service for Synthetic Human Brain"
+description = "Cross-platform Rust HTTP/WebSocket server for Synthetic Human Brain"
 license = "Apache-2.0"
 
 [dependencies]
@@ -13,3 +13,4 @@ tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+synthetic-brain-backend = { path = "../backend" }
