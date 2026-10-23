@@ -1,9 +1,4 @@
-"""Neuromodulatory and reward-signal primitives.
-
-These are abstract control variables, not biochemical simulations of the
-human neuromodulatory systems.
-"""
-
+"""Neuromodulatory and reward-signal primitives."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,8 +8,6 @@ from synthetic_brain.algorithms import td_error
 
 @dataclass
 class Neuromodulator:
-    """A bounded, slowly changing modulatory concentration/activity signal."""
-
     name: str
     level: float = 0.0
     baseline: float = 0.0
@@ -32,8 +25,6 @@ class Neuromodulator:
 
 @dataclass
 class DopamineSignal:
-    """Reward-prediction-error driven dopamine-like teaching signal."""
-
     gain: float = 1.0
     baseline: float = 0.0
 
@@ -46,8 +37,6 @@ class DopamineSignal:
 
 @dataclass
 class HomeostaticController:
-    """Slowly regulate activity toward a target operating point."""
-
     target_rate: float
     learning_rate: float = 0.01
 
@@ -62,9 +51,4 @@ DEFAULT_NEUROMODULATORS = {
     "norepinephrine": Neuromodulator("norepinephrine"),
 }
 
-__all__ = [
-    "Neuromodulator",
-    "DopamineSignal",
-    "HomeostaticController",
-    "DEFAULT_NEUROMODULATORS",
-]
+__all__ = ["DEFAULT_NEUROMODULATORS", "DopamineSignal", "HomeostaticController", "Neuromodulator"]
