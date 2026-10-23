@@ -1,0 +1,9 @@
+@startuml
+class Connectome { +connect() +disconnect() +propagate() }
+class Connection { +source +target +weight }
+class Projection
+class NeuralPathway
+Connectome o-- Connection
+Connectome o-- Projection
+Projection --> NeuralPathway
+@enduml
