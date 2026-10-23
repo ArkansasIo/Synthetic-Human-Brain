@@ -1,0 +1,11 @@
+@startuml
+class BrainRegion { +id: str +name: str +parent: str +children: list }
+class BrainArea
+class Nucleus
+class CorticalLayer
+class AnatomicalCoordinate
+BrainRegion <|-- BrainArea
+BrainRegion <|-- Nucleus
+BrainRegion o-- CorticalLayer
+BrainRegion o-- AnatomicalCoordinate
+@enduml
