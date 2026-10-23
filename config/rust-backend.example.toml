@@ -1,0 +1,27 @@
+[backend]
+name = "synthetic-brain-rust"
+listen_host = "127.0.0.1"
+listen_port = 7800
+python_mode = "ffi"
+
+[database]
+driver = "mysql"
+host = "127.0.0.1"
+port = 3306
+database = "synthetic_brain"
+username = "synthetic_brain"
+# password is supplied through an environment variable, never committed here.
+password_env = "SYNTHETIC_BRAIN_DB_PASSWORD"
+
+[hardware]
+virtual_enabled = true
+plugin_directory = "rust/backend/plugins"
+
+[telemetry]
+enabled = true
+interval_ms = 1000
+
+[platforms]
+windows = true
+macos = true
+linux = true
