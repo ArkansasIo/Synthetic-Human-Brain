@@ -180,7 +180,8 @@ class Parser:
             duration = self.expression()
             self.accept(";")
             return {"type": "step", "duration": duration}
-        expr = self.expression(); self.accept(";")
+        expr = self.expression()
+        self.accept(";")
         return {"type": "expr", "value": expr}
 
     def parameters(self) -> list[str]:
@@ -322,7 +323,9 @@ class BrainRuntime:
     def execute_node(self, node: dict[str, Any], env: Environment) -> Any:
         kind = node["type"]
         if kind == "var":
-            value = self.evaluate(node["value"], env); env.define(node["name"], value); return value
+            value = self.evaluate(node["value"], env)
+            env.define(node["name"], value)
+            return value
         if kind == "expr":
             return self.evaluate(node["value"], env)
         if kind == "return":
@@ -331,10 +334,13 @@ class BrainRuntime:
             body = node["yes"] if self.evaluate(node["condition"], env) else node["no"]
             return self.execute_block(body, env)
         if kind == "while":
-            result = None; guard = 0
+            result = None
+            guard = 0
             while self.evaluate(node["condition"], env):
-                result = self.execute_block(node["body"], env); guard += 1
-                if guard > 1_000_000: raise RuntimeError("while loop exceeded safety limit")
+                result = self.execute_block(node["body"], env)
+                guard += 1
+                if guard > 1_000_000:
+                    raise RuntimeError("while loop exceeded safety limit")
             return result
         if kind == "fn":
             def function(*args: Any) -> Any:
@@ -345,21 +351,26 @@ class BrainRuntime:
                     return self.execute_block(node["body"], local)
                 except ReturnSignal as signal:
                     return signal.value
-            env.define(node["name"], function); return function
+            env.define(node["name"], function)
+            return function
         if kind == "class":
             cls = BrainClass(node["name"])
             for member in node["body"]:
                 if member["type"] == "fn":
                     def make_method(method_node: dict[str, Any]):
                         def method(obj: BrainObject, *args: Any) -> Any:
-                            local = Environment(env); local.define("this", obj)
+                            local = Environment(env)
+                            local.define("this", obj)
                             for index, name in enumerate(method_node["params"]):
                                 local.define(name, args[index] if index < len(args) else None)
-                            try: return self.execute_block(method_node["body"], local)
-                            except ReturnSignal as signal: return signal.value
+                            try:
+                                return self.execute_block(method_node["body"], local)
+                            except ReturnSignal as signal:
+                                return signal.value
                         return method
                     cls.methods[member["name"]] = make_method(member)
-            env.define(node["name"], cls); return cls
+            env.define(node["name"], cls)
+            return cls
         if kind == "brain":
             brain = BrainObject({"name": node["name"], "populations": {}, "connections": []})
             env.define(node["name"], brain)
@@ -380,16 +391,20 @@ class BrainRuntime:
 
     def execute_block(self, nodes: list[dict[str, Any]], env: Environment) -> Any:
         result = None
-        for node in nodes: result = self.execute_node(node, env)
+        for node in nodes:
+            result = self.execute_node(node, env)
         return result
 
     def evaluate(self, node: dict[str, Any], env: Environment) -> Any:
         kind = node["type"]
-        if kind == "literal": return node["value"]
-        if kind == "name": return env.get(node["name"])
+        if kind == "literal":
+            return node["value"]
+        if kind == "name":
+            return env.get(node["name"])
         if kind == "get":
             obj = self.evaluate(node["object"], env)
-            if isinstance(obj, BrainObject): return obj.fields[node["name"]]
+            if isinstance(obj, BrainObject):
+                return obj.fields[node["name"]]
             return getattr(obj, node["name"])
         if kind == "call":
             callee = self.evaluate(node["callee"], env)
@@ -399,7 +414,9 @@ class BrainRuntime:
             value = self.evaluate(node["value"], env)
             return {"not": lambda: not value, "!": lambda: not value, "-": lambda: -value}[node["op"]]()
         if kind == "binary":
-            left = self.evaluate(node["left"], env); right = self.evaluate(node["right"], env); op = node["op"]
+            left = self.evaluate(node["left"], env)
+            right = self.evaluate(node["right"], env)
+            op = node["op"]
             operations = {"+": lambda: left + right, "-": lambda: left - right, "*": lambda: left * right,
                           "/": lambda: left / right, "%": lambda: left % right, "==": lambda: left == right,
                           "!=": lambda: left != right, "<": lambda: left < right, "<=": lambda: left <= right,
