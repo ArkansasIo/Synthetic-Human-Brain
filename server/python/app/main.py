@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
@@ -33,7 +33,6 @@ app.add_middleware(
 
 bearer = HTTPBearer(auto_error=False)
 
-
 class AuthRequest(BaseModel):
     username: str = Field(min_length=1, max_length=128)
     password: str = Field(min_length=1, max_length=512)
@@ -41,50 +40,59 @@ class AuthRequest(BaseModel):
     client_id: str = Field(default="browser", max_length=128)
     platform: str = Field(default="browser", max_length=32)
 
-
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     description: str = ""
     visibility: str = "private"
-
 
 class ExperimentCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     backend: str = Field(default="auto", max_length=32)
     configuration: dict = Field(default_factory=dict)
 
-
 class JobCreate(BaseModel):
     operation: str = Field(min_length=1, max_length=128)
     payload: dict = Field(default_factory=dict)
-
 
 class TelemetryCreate(BaseModel):
     metric: str = Field(min_length=1, max_length=128)
     value: float
     metadata: dict = Field(default_factory=dict)
 
+class ServerCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    endpoint_url: str = Field(min_length=1, max_length=2048)
+    platform: str = Field(default="linux", max_length=32)
+    capabilities: dict = Field(default_factory=dict)
+
+class WorkerCreate(BaseModel):
+    server_id: str
+    name: str = Field(min_length=1, max_length=255)
+    backend: str = Field(default="rust", max_length=32)
+    endpoint_url: str = Field(min_length=1, max_length=2048)
+    capabilities: dict = Field(default_factory=dict)
+
+class WorkerHeartbeat(BaseModel):
+    status: str = Field(default="online", max_length=32)
+    capabilities: dict | None = None
+
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
-
 def safe_user(user: User, roles: list[str]) -> dict:
     return {"id": user.id, "username": user.username, "display_name": user.display_name, "status": user.status, "roles": roles}
-
 
 async def role_names(session: AsyncSession, user_id: str) -> list[str]:
     result = await session.execute(select(Role.name).join(UserRole, UserRole.role_id == Role.id).where(UserRole.user_id == user_id))
     return list(result.scalars().all())
-
 
 async def current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), session: AsyncSession = Depends(db_session)) -> User:
     if credentials is None:
         raise HTTPException(status_code=401, detail="Bearer token required")
     try:
         claims = jwt.decode(credentials.credentials, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        user_id = claims.get("sub")
-        session_id = claims.get("sid")
+        user_id, session_id = claims.get("sub"), claims.get("sid")
         if not user_id or not session_id:
             raise ValueError("missing token claims")
     except (jwt.InvalidTokenError, ValueError) as exc:
@@ -97,17 +105,14 @@ async def current_user(credentials: HTTPAuthorizationCredentials | None = Depend
     await session.commit()
     return user
 
-
 async def require_role(user: User, session: AsyncSession, *allowed: str) -> list[str]:
     roles = await role_names(session, user.id)
     if not set(roles).intersection(allowed):
         raise HTTPException(status_code=403, detail="Insufficient role")
     return roles
 
-
 async def write_audit(session: AsyncSession, user_id: str | None, action: str, resource_type: str | None = None, resource_id: str | None = None, details: dict | None = None) -> None:
     session.add(AuditLog(user_id=user_id, action=action, resource_type=resource_type, resource_id=resource_id, details_json=details or {}))
-
 
 async def project_access(session: AsyncSession, project_id: str, user: User) -> Project:
     project = await session.get(Project, project_id)
@@ -120,16 +125,13 @@ async def project_access(session: AsyncSession, project_id: str, user: User) -> 
         raise HTTPException(status_code=403, detail="Project access denied")
     return project
 
-
 @app.get("/api/v1/health")
 async def health() -> dict:
     return {"status": "ok", "service": settings.app_name, "version": settings.version}
 
-
 @app.get("/api/v1/about")
 async def about() -> dict:
     return {"name": settings.app_name, "version": settings.version, "developer": settings.developer, "role": "Public research API and orchestration layer", "platforms": ["windows", "macos", "linux"], "clients": ["desktop", "browser"], "protocols": ["HTTPS", "WSS"], "workers": ["python", "rust"]}
-
 
 @app.post("/api/v1/auth/register")
 async def register(request: AuthRequest, session: AsyncSession = Depends(db_session)) -> dict:
@@ -147,7 +149,6 @@ async def register(request: AuthRequest, session: AsyncSession = Depends(db_sess
     await session.commit()
     return {"access_token": issue_token(user.id, session_id), "token_type": "bearer", "session_id": session_id, "user": safe_user(user, ["researcher"])}
 
-
 @app.post("/api/v1/auth/login")
 async def login(request: AuthRequest, session: AsyncSession = Depends(db_session)) -> dict:
     user = await authenticate_user(session, request.username, request.password)
@@ -159,9 +160,7 @@ async def login(request: AuthRequest, session: AsyncSession = Depends(db_session
     session.add(Session(id=session_id, user_id=user.id, client_id=request.client_id, platform=request.platform, expires_at=expires))
     await write_audit(session, user.id, "auth.login", "user", user.id, {"client_id": request.client_id, "platform": request.platform})
     await session.commit()
-    roles = await role_names(session, user.id)
-    return {"access_token": issue_token(user.id, session_id), "token_type": "bearer", "session_id": session_id, "user": safe_user(user, roles)}
-
+    return {"access_token": issue_token(user.id, session_id), "token_type": "bearer", "session_id": session_id, "user": safe_user(user, await role_names(session, user.id))}
 
 @app.post("/api/v1/auth/logout")
 async def logout(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), session: AsyncSession = Depends(db_session)) -> dict:
@@ -172,10 +171,8 @@ async def logout(credentials: HTTPAuthorizationCredentials | None = Depends(bear
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Invalid access token") from exc
     session_id, user_id = claims.get("sid"), claims.get("sub")
-    if not session_id or not user_id:
-        raise HTTPException(status_code=401, detail="Invalid session claims")
-    auth_session = await session.get(Session, session_id)
-    user = await session.get(User, user_id)
+    auth_session = await session.get(Session, session_id) if session_id else None
+    user = await session.get(User, user_id) if user_id else None
     if auth_session is None or user is None or auth_session.revoked_at is not None:
         raise HTTPException(status_code=401, detail="Session unavailable")
     auth_session.revoked_at = utcnow()
@@ -183,11 +180,9 @@ async def logout(credentials: HTTPAuthorizationCredentials | None = Depends(bear
     await session.commit()
     return {"ok": True, "session_id": session_id}
 
-
 @app.get("/api/v1/me")
 async def me(user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
     return safe_user(user, await role_names(session, user.id))
-
 
 @app.get("/api/v1/projects")
 async def projects(user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
@@ -195,7 +190,6 @@ async def projects(user: User = Depends(current_user), session: AsyncSession = D
     query = select(Project).order_by(Project.created_at.desc()) if "administrator" in roles else select(Project).outerjoin(ProjectMember, ProjectMember.project_id == Project.id).where((Project.owner_user_id == user.id) | (ProjectMember.user_id == user.id)).distinct().order_by(Project.created_at.desc())
     result = await session.execute(query)
     return {"items": [{"id": p.id, "name": p.name, "description": p.description or "", "owner_user_id": p.owner_user_id, "visibility": p.visibility, "created_at": p.created_at.isoformat() if p.created_at else None} for p in result.scalars().all()]}
-
 
 @app.post("/api/v1/projects")
 async def create_project(project: ProjectCreate, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
@@ -211,13 +205,11 @@ async def create_project(project: ProjectCreate, user: User = Depends(current_us
     await session.refresh(record)
     return {"id": record.id, "name": record.name, "description": record.description or "", "owner_user_id": record.owner_user_id, "visibility": record.visibility}
 
-
 @app.get("/api/v1/projects/{project_id}/experiments")
 async def list_experiments(project_id: str, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
     await project_access(session, project_id, user)
     result = await session.execute(select(Experiment).where(Experiment.project_id == project_id).order_by(Experiment.created_at.desc()))
     return {"items": [{"id": e.id, "name": e.name, "status": e.status, "backend": e.backend, "configuration": e.configuration_json or {}} for e in result.scalars().all()]}
-
 
 @app.post("/api/v1/projects/{project_id}/experiments")
 async def create_experiment(project_id: str, request: ExperimentCreate, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
@@ -235,7 +227,6 @@ async def create_experiment(project_id: str, request: ExperimentCreate, user: Us
     await session.refresh(experiment)
     return {"id": experiment.id, "project_id": experiment.project_id, "name": experiment.name, "status": experiment.status, "backend": experiment.backend}
 
-
 @app.post("/api/v1/experiments/{experiment_id}/jobs")
 async def submit_job(experiment_id: str, request: JobCreate, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
     experiment = await session.get(Experiment, experiment_id)
@@ -250,10 +241,9 @@ async def submit_job(experiment_id: str, request: JobCreate, user: User = Depend
         await session.rollback()
         raise HTTPException(status_code=503, detail="No healthy worker currently matches this job")
     await write_audit(session, user.id, "job.submit", "job", job.id, {"operation": request.operation, "worker_id": selection.worker_id})
-    await session.commit()
-    await session.refresh(job)
     job.status = "running"
     job.started_at = utcnow()
+    job.worker_id = selection.worker_id
     await session.commit()
     await publish_job_event(job_id=job.id, status="running", worker_id=selection.worker_id)
     try:
@@ -274,7 +264,6 @@ async def submit_job(experiment_id: str, request: JobCreate, user: User = Depend
         raise HTTPException(status_code=502, detail="Selected worker unavailable or rejected the job") from exc
     return {"id": job.id, "experiment_id": job.experiment_id, "operation": job.operation, "status": job.status, "worker_id": selection.worker_id, "payload": job.payload_json or {}, "result": job.result_json or {}}
 
-
 @app.get("/api/v1/jobs")
 async def jobs(user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
     roles = await role_names(session, user.id)
@@ -282,8 +271,7 @@ async def jobs(user: User = Depends(current_user), session: AsyncSession = Depen
         result = await session.execute(select(Job).order_by(Job.created_at.desc()).limit(200))
     else:
         result = await session.execute(select(Job).join(Experiment, Job.experiment_id == Experiment.id).join(Project, Experiment.project_id == Project.id).outerjoin(ProjectMember, ProjectMember.project_id == Project.id).where((Project.owner_user_id == user.id) | (ProjectMember.user_id == user.id)).distinct().order_by(Job.created_at.desc()).limit(200))
-    return {"items": [{"id": j.id, "experiment_id": j.experiment_id, "operation": j.operation, "status": j.status, "payload": j.payload_json or {}, "result": j.result_json or {}} for j in result.scalars().all()]}
-
+    return {"items": [{"id": j.id, "experiment_id": j.experiment_id, "operation": j.operation, "status": j.status, "worker_id": getattr(j, "worker_id", None), "payload": j.payload_json or {}, "result": j.result_json or {}} for j in result.scalars().all()]}
 
 @app.post("/api/v1/experiments/{experiment_id}/telemetry")
 async def add_telemetry(experiment_id: str, request: TelemetryCreate, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
@@ -298,3 +286,91 @@ async def add_telemetry(experiment_id: str, request: TelemetryCreate, user: User
     payload = {"id": event.id, "experiment_id": event.experiment_id, "metric": event.metric, "value": event.value, "timestamp": event.timestamp.isoformat() if event.timestamp else None, "metadata": event.metadata_json or {}}
     await telemetry_hub.publish(envelope("experiment.telemetry", payload))
     return payload
+
+@app.get("/api/v1/experiments/{experiment_id}/telemetry")
+async def get_telemetry(experiment_id: str, limit: int = Query(default=500, ge=1, le=5000), user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
+    experiment = await session.get(Experiment, experiment_id)
+    if experiment is None:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    await project_access(session, experiment.project_id, user)
+    result = await session.execute(select(TelemetryEvent).where(TelemetryEvent.experiment_id == experiment_id).order_by(TelemetryEvent.timestamp.desc()).limit(limit))
+    return {"items": [{"id": e.id, "experiment_id": e.experiment_id, "metric": e.metric, "value": e.value, "timestamp": e.timestamp.isoformat() if e.timestamp else None, "metadata": e.metadata_json or {}} for e in result.scalars().all()]}
+
+@app.get("/api/v1/servers")
+async def list_servers(user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
+    await require_role(user, session, "administrator")
+    result = await session.execute(select(Server).order_by(Server.created_at.desc()))
+    return {"items": [{"id": s.id, "name": s.name, "endpoint_url": s.endpoint_url, "platform": s.platform, "status": s.status, "capabilities": s.capabilities_json or {}, "last_heartbeat": s.last_heartbeat.isoformat() if s.last_heartbeat else None} for s in result.scalars().all()]}
+
+@app.post("/api/v1/servers")
+async def register_server(request: ServerCreate, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
+    await require_role(user, session, "administrator")
+    server = Server(name=request.name, endpoint_url=request.endpoint_url, platform=request.platform, capabilities_json=request.capabilities, status="online", last_heartbeat=utcnow())
+    session.add(server)
+    await session.flush()
+    await write_audit(session, user.id, "server.register", "server", server.id, {"platform": request.platform})
+    await session.commit()
+    return {"id": server.id, "name": server.name, "status": server.status}
+
+@app.get("/api/v1/workers")
+async def list_workers(user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
+    await require_role(user, session, "administrator", "researcher")
+    result = await session.execute(select(Worker).order_by(Worker.created_at.desc()))
+    return {"items": [{"id": w.id, "server_id": w.server_id, "name": w.name, "backend": w.backend, "endpoint_url": getattr(w, "endpoint_url", None), "status": w.status, "capabilities": w.capabilities_json or {}, "last_heartbeat": w.last_heartbeat.isoformat() if w.last_heartbeat else None} for w in result.scalars().all()]}
+
+@app.post("/api/v1/workers")
+async def register_worker(request: WorkerCreate, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
+    await require_role(user, session, "administrator")
+    server = await session.get(Server, request.server_id)
+    if server is None:
+        raise HTTPException(status_code=404, detail="Server not found")
+    worker = Worker(server_id=request.server_id, name=request.name, backend=request.backend, endpoint_url=request.endpoint_url, capabilities_json=request.capabilities, status="online", last_heartbeat=utcnow())
+    session.add(worker)
+    await session.flush()
+    await write_audit(session, user.id, "worker.register", "worker", worker.id, {"server_id": request.server_id, "backend": request.backend})
+    await session.commit()
+    return {"id": worker.id, "server_id": worker.server_id, "name": worker.name, "status": worker.status}
+
+@app.post("/api/v1/workers/{worker_id}/heartbeat")
+async def worker_heartbeat(worker_id: str, request: WorkerHeartbeat, user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:
+    await require_role(user, session, "administrator", "researcher")
+    worker = await session.get(Worker, worker_id)
+    if worker is None:
+        raise HTTPException(status_code=404, detail="Worker not found")
+    worker.status = request.status
+    worker.last_heartbeat = utcnow()
+    if request.capabilities is not None:
+        worker.capabilities_json = request.capabilities
+    await session.commit()
+    return {"id": worker.id, "status": worker.status, "last_heartbeat": worker.last_heartbeat.isoformat()}
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(default=None)) -> None:
+    if not token:
+        await websocket.close(code=1008)
+        return
+    try:
+        claims = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        user_id, session_id = claims.get("sub"), claims.get("sid")
+        if not user_id or not session_id:
+            raise ValueError("missing token claims")
+    except (jwt.InvalidTokenError, ValueError):
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
+    queue = telemetry_hub.subscribe()
+    await websocket.send_json(envelope("server.connected", {"user_id": user_id}, session_id=session_id))
+    try:
+        while True:
+            try:
+                message = await asyncio.wait_for(websocket.receive_json(), timeout=0.25)
+                if message.get("type") == "ping":
+                    await websocket.send_json(envelope("server.pong", {}, session_id=session_id))
+            except asyncio.TimeoutError:
+                pass
+            while not queue.empty():
+                await websocket.send_json(queue.get_nowait())
+    except WebSocketDisconnect:
+        pass
+    finally:
+        telemetry_hub.unsubscribe(queue)
