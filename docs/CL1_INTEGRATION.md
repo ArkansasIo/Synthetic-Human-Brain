@@ -4,7 +4,7 @@ The Synthetic Human Brain project now has an optional integration boundary for t
 
 ## Why CL1 belongs in this project
 
-The CL1 is a biological-neural-computing platform rather than a conventional artificial-neural-network accelerator. Cortical Labs documents a Python CL API for recording neural activity, delivering stimulation, and running real-time closed-loop algorithms. The same API has a local SDK Simulator intended to preserve application-level interface compatibility. citeturn0search0turn0search1
+The CL1 is a biological-neural-computing platform rather than a conventional artificial-neural-network accelerator. Cortical Labs provides a Python CL API for recording neural activity, delivering stimulation, and running real-time closed-loop algorithms. The same API has a local SDK Simulator intended to preserve application-level interface compatibility.
 
 This repository therefore treats CL1 as an **experimental biological-neural backend** alongside the synthetic simulator. It is not treated as evidence that the software reproduces a human brain.
 
@@ -62,7 +62,7 @@ with CL1Bridge.open() as cl1:
     )
 ```
 
-The bridge does not choose stimulation amplitudes, pulse widths, channels, or experimental protocols. Those are supplied explicitly by the caller and must follow the hardware documentation, experimental protocol, and applicable institutional requirements. Cortical Labs documents current-based stimulation, channel selection, pulse design, burst design, and device-side limits in its API reference. citeturn0search0turn0search1
+The bridge does not choose stimulation amplitudes, pulse widths, channels, or experimental protocols. Those are supplied explicitly by the caller and must follow the hardware documentation, experimental protocol, and applicable institutional requirements.
 
 ## Closed-loop design
 
@@ -76,11 +76,11 @@ A CL1 experiment should be modeled as:
 6. **Record** — persist raw/processed observations, parameters, software revision, and outcomes.
 7. **Validate** — compare biological observations with synthetic models and predefined controls.
 
-Cortical Labs documents a tightly timed `Neurons.loop()` interface, spike/stim analysis per tick, recording support, and jitter detection/recovery. The API documentation states a maximum loop frequency of 25 kHz and describes deadline enforcement for real-time loop bodies. citeturn0search0turn0search1
+The CL API exposes a tightly timed loop, spike/stim analysis per tick, recording support, and jitter detection/recovery. Its documented loop constraint is no more than 25 kHz, with deadline enforcement for real-time loop bodies.
 
 ## Simulator strategy
 
-The CL SDK Simulator can be used as a software-integration target. Cortical Labs documents simulator sources based on generated data, recording replay, and custom data sources. Custom sources can represent models, hardware streams, or test fixtures. The simulator itself should not be interpreted as a learning biological model. citeturn0search0turn0search2
+The CL SDK Simulator can be used as a software-integration target. It supports generated data, recording replay, and custom data sources. Custom sources can represent models, hardware streams, or test fixtures. The simulator should not be interpreted as a learning biological model.
 
 For this project, the preferred testing hierarchy is:
 
@@ -109,7 +109,7 @@ Each CL1 experiment should record at least:
 - control condition
 - deviations and failures
 
-Cortical Labs' recording API exposes system metadata and recording metadata including project, system, cell-batch, sampling, duration, timestamps, and software provenance fields. citeturn0search1
+The CL API exposes system and recording metadata suitable for experiment provenance, including project, system, cell-batch, sampling, duration, timestamps, and software provenance fields.
 
 ## Research questions enabled by the integration
 
@@ -148,3 +148,7 @@ CL1 integration does **not** establish consciousness, human-like cognition, sent
 5. Add synthetic-vs-CL1 benchmark reports.
 6. Add BrainLang commands for `record`, `stimulus`, `emit`, and `step` backed by an explicit experiment context.
 7. Add replay-driven regression tests using non-sensitive fixture data.
+
+## Primary reference
+
+Cortical Labs Developer Guide: https://docs.corticallabs.com/
