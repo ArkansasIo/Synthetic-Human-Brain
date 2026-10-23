@@ -1,0 +1,14 @@
+[package]
+name = "synthetic-brain-core"
+version = "0.1.0"
+edition = "2021"
+description = "Rust performance core for the Synthetic Human Brain research platform."
+license = "Apache-2.0"
+
+[lib]
+name = "synthetic_brain_core"
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+
+[dev-dependencies]
