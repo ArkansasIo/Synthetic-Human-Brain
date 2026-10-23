@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-from uuid import uuid4
+from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -35,11 +34,7 @@ class WorkerHeartbeat(BaseModel):
 
 
 async def require_registry_token(credentials: HTTPAuthorizationCredentials | None = Depends(bearer)) -> None:
-    """Protect registry endpoints with a deployment-level token.
-
-    The token is intentionally supplied through the deployment environment rather
-    than stored in the repository. Set SYNTHETIC_BRAIN_WORKER_REGISTRY_TOKEN.
-    """
+    """Protect registry endpoints with a deployment-level environment token."""
     import os
 
     expected = os.getenv("SYNTHETIC_BRAIN_WORKER_REGISTRY_TOKEN")
@@ -62,7 +57,7 @@ async def register_server(request: ServerRegistration, session: AsyncSession = D
         server.host = request.host
         server.port = request.port
         server.status = "online"
-    server.last_heartbeat = datetime.utcnow()
+    server.last_heartbeat = datetime.now(timezone.utc).replace(tzinfo=None)
     await session.commit()
     await session.refresh(server)
     return {"server_id": server.id, "name": server.name, "status": server.status}
