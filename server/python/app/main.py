@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import httpx
 import jwt
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +29,8 @@ from .models import (
     Worker,
 )
 from .protocol import envelope
+from .rust_client import dispatch_job
+from .telemetry import telemetry_hub
 
 app = FastAPI(title=settings.app_name, version=settings.version)
 app.add_middleware(
@@ -168,6 +171,7 @@ async def about() -> dict:
         "platforms": ["windows", "macos", "linux"],
         "clients": ["desktop", "browser"],
         "protocols": ["HTTPS", "WSS"],
+        "workers": ["python", "rust"],
     }
 
 
@@ -294,12 +298,30 @@ async def submit_job(experiment_id: str, request: JobCreate, user: User = Depend
     if experiment is None:
         raise HTTPException(status_code=404, detail="Experiment not found")
     await project_access(session, experiment.project_id, user)
-    job = Job(experiment_id=experiment_id, operation=request.operation, payload_json=request.payload)
+
+    job = Job(experiment_id=experiment_id, operation=request.operation, payload_json=request.payload, status="queued")
     session.add(job)
+    await session.flush()
     await write_audit(session, user.id, "job.submit", "job", job.id, {"operation": request.operation})
     await session.commit()
     await session.refresh(job)
-    return {"id": job.id, "experiment_id": job.experiment_id, "operation": job.operation, "status": job.status, "payload": job.payload_json or {}}
+
+    job.status = "running"
+    await session.commit()
+    try:
+        result = await dispatch_job(job.id, job.operation, job.payload_json or {})
+        job.result_json = result
+        job.status = "completed" if result.get("status") == "completed" or result.get("accepted") else "failed"
+        await write_audit(session, user.id, "job.complete", "job", job.id, {"status": job.status})
+        await session.commit()
+    except (httpx.HTTPError, ValueError) as exc:
+        job.status = "failed"
+        job.result_json = {"error": str(exc), "type": type(exc).__name__}
+        await write_audit(session, user.id, "job.failed", "job", job.id, {"error": str(exc)})
+        await session.commit()
+        raise HTTPException(status_code=502, detail="Rust worker unavailable or rejected the job") from exc
+
+    return {"id": job.id, "experiment_id": job.experiment_id, "operation": job.operation, "status": job.status, "payload": job.payload_json or {}, "result": job.result_json or {}}
 
 
 @app.get("/api/v1/jobs")
@@ -326,7 +348,9 @@ async def add_telemetry(experiment_id: str, request: TelemetryCreate, user: User
     session.add(event)
     await session.commit()
     await session.refresh(event)
-    return {"id": event.id, "experiment_id": event.experiment_id, "metric": event.metric, "value": event.value, "timestamp": event.timestamp.isoformat() if event.timestamp else None}
+    payload = {"id": event.id, "experiment_id": event.experiment_id, "metric": event.metric, "value": event.value, "timestamp": event.timestamp.isoformat() if event.timestamp else None, "metadata": event.metadata_json or {}}
+    await telemetry_hub.publish(envelope("experiment.telemetry", payload))
+    return payload
 
 
 @app.get("/api/v1/experiments/{experiment_id}/telemetry")
@@ -369,11 +393,20 @@ async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(def
 
     await websocket.accept()
     session_id = claims["sid"]
+    queue = telemetry_hub.subscribe()
     await websocket.send_json(envelope("server.connected", {"authenticated": True}, session_id=session_id))
     try:
         while True:
-            message = await websocket.receive_json()
-            message_type = message.get("message_type", "client.message")
-            await websocket.send_json(envelope("server.ack", {"received": True, "message_type": message_type}, request_id=message.get("request_id"), session_id=session_id))
+            try:
+                message = await asyncio.wait_for(websocket.receive_json(), timeout=0.25)
+                message_type = message.get("message_type", "client.message")
+                await websocket.send_json(envelope("server.ack", {"received": True, "message_type": message_type}, request_id=message.get("request_id"), session_id=session_id))
+            except TimeoutError:
+                pass
+            while not queue.empty():
+                event = queue.get_nowait()
+                await websocket.send_json(event)
     except WebSocketDisconnect:
         return
+    finally:
+        telemetry_hub.unsubscribe(queue)
