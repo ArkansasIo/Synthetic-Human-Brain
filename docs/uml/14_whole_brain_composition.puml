@@ -1,0 +1,27 @@
+@startuml
+class WholeBrainModel
+class Cortex
+class Hippocampus
+class LimbicSystem
+class BasalGanglia
+class Thalamus
+class Hypothalamus
+class Cerebellum
+class Brainstem
+class SpinalSystem
+class SensorySystems
+class MotorSystems
+class Connectome
+WholeBrainModel *-- Cortex
+WholeBrainModel *-- Hippocampus
+WholeBrainModel *-- LimbicSystem
+WholeBrainModel *-- BasalGanglia
+WholeBrainModel *-- Thalamus
+WholeBrainModel *-- Hypothalamus
+WholeBrainModel *-- Cerebellum
+WholeBrainModel *-- Brainstem
+WholeBrainModel *-- SpinalSystem
+WholeBrainModel *-- SensorySystems
+WholeBrainModel *-- MotorSystems
+WholeBrainModel *-- Connectome
+@enduml
