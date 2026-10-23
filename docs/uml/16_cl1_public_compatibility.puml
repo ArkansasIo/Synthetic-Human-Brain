@@ -1,0 +1,50 @@
+@startuml
+skinparam componentStyle rectangle
+
+package "Synthetic Human Brain" {
+  interface NeuralSubstrate
+  interface RecordingBackend
+  interface StimulationBackend
+  interface SpikeStream
+  interface DataReplay
+
+  component BrainScript
+  component CL1Compatibility
+  component SyntheticSimulator
+  component CL1Replay
+  component RealCL1Adapter
+}
+
+package "Public CL1 API Concepts" {
+  component Neurons
+  component SpikeDetection
+  component Recording
+  component DataStreams
+  component Stimulation
+  component RealTimeLoop
+}
+
+BrainScript --> NeuralSubstrate
+CL1Compatibility ..|> NeuralSubstrate
+SyntheticSimulator ..|> NeuralSubstrate
+CL1Replay ..|> NeuralSubstrate
+RealCL1Adapter ..|> NeuralSubstrate
+
+CL1Compatibility --> SpikeStream
+CL1Compatibility --> RecordingBackend
+CL1Compatibility --> StimulationBackend
+CL1Replay --> DataReplay
+
+Neurons --> SpikeDetection
+SpikeDetection --> SpikeStream
+Recording --> RecordingBackend
+DataStreams --> DataReplay
+Stimulation --> StimulationBackend
+RealTimeLoop --> SpikeStream
+RealTimeLoop --> StimulationBackend
+
+note right of CL1Compatibility
+Independent compatibility layer.
+No proprietary source or firmware is copied.
+end note
+@enduml
