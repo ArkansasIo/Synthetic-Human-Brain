@@ -1,0 +1,7 @@
+const fallback={project_name:'Synthetic Human Brain',build_name:'Synthetic Human Brain Research Platform',build_version:'0.7.0',build_id:'SHB-20261023-UI01',developer_name:'ArkansasIo',release_channel:'research',python_min_version:'3.11'};
+const labels={project_name:'Product',build_name:'Build name',build_version:'Version',build_id:'Build ID',developer_name:'Developer',release_channel:'Release channel',python_min_version:'Minimum Python'};
+function render(meta){document.querySelector('#buildBadge').textContent=`v${meta.build_version} · ${meta.build_id}`;document.querySelector('#buildValue').textContent=`${meta.build_name} v${meta.build_version}`;document.querySelector('#developerValue').textContent=meta.developer_name;document.querySelector('#channelValue').textContent=meta.release_channel;document.querySelector('#aboutTable').innerHTML=Object.entries(meta).map(([k,v])=>`<tr><td>${labels[k]||k}</td><td>${v}</td></tr>`).join('');}
+render(fallback);
+fetch('/api/about').then(r=>r.ok?r.json():Promise.reject()).then(x=>render(x.about)).catch(()=>{});
+const dialog=document.querySelector('#aboutDialog');document.querySelector('#aboutButton').onclick=()=>dialog.showModal();document.querySelector('#closeAbout').onclick=()=>dialog.close();
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelector('#log').textContent+=`\n[ui] opened ${b.textContent} API panel`;});
