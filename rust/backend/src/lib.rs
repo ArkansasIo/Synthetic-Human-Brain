@@ -17,3 +17,4 @@ pub mod cl1_labs_bridge;
 pub mod hardware_pipeline;
 pub mod synapse;
 pub mod neuron;
+pub mod connectome;
