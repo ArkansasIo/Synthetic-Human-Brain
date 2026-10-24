@@ -54,6 +54,7 @@ This project separates **measured data**, **inferred state**, **simulated state*
 - [Rust backend reference](docs/RUST_BACKEND_REFERENCE.md)
 - [Front end reference](docs/FRONTEND_REFERENCE.md)
 - [GUI menus and pages](docs/GUI_MENUS_REFERENCE.md)
+- [CL1-Neural-labs front end](docs/cl1-labs/CL1_LABS_INTEGRATION.md)
 
 ## Repository layout
 
