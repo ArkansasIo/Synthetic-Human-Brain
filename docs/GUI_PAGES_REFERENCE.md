@@ -9,7 +9,7 @@ that reach each page are documented in `GUI_MENUS_REFERENCE.md`.
 | Tab | Sub-pages (inner tabs) | Components | Information source files |
 | --- | --- | --- | --- |
 | Dashboard | — | Stats grid, refresh button, log panel | `GET /api/v1/about`, `/api/v1/health` |
-| CL1 Clone | Session, Stimulation, Recording, Run, Graphics & Charts, Information Source Files, Modules | Buttons, spinboxes, tree, canvases | `synthetic_brain/cl1_clone.py`, `cl1_simulator.py` |
+| CL1 Clone | Control Panel, Session, Stimulation, Stim Designer, Recording, Run, Graphics & Charts, Session Info, Information Source Files, Modules | Buttons, spinboxes, forms, tree, canvases, live status strip | `synthetic_brain/cl1_clone.py`, `cl1_simulator.py` |
 | Network Simulation | Example, Connectivity Graph, Activity Chart | Run button, `NetworkGraphCanvas`, `ActivityLineCanvas` | `synthetic_brain/network.py`, `network_simulation.py`, `neuron.py`, `synapse.py` |
 | BrainScript | — | Code editor, compile/run button | `synthetic_brain/brainlang.py`, `brainscript.py` |
 | Projects | — | Table, create form | `GET/POST /api/v1/projects` |
@@ -24,6 +24,9 @@ that reach each page are documented in `GUI_MENUS_REFERENCE.md`.
 | Sub-page | Contents | Source files |
 | --- | --- | --- |
 | Session | Open/close simulator, neuron count | `cl1_clone.py` (`open`, `Neurons`) |
+| Control Panel | 8 primary action buttons, live status strip (session/channels/recording/timestamp) | `Neurons`, `Recording` |
+| Stim Designer | Form: channels, amplitude, pulse count, burst frequency, waveform mode; deliver button | `StimDesign`, `BurstDesign`, `ChannelSet` |
+| Session Info | Live property tree (session, channels, sample rate, recording counters) + research boundary note | `Neurons.timestamp`, `Recording` |
 | Stimulation | Single / burst pulse designers | `StimDesign`, `BurstDesign`, `ChannelSet` |
 | Recording | Start/stop, spike list, report | `Recording`, `Spike`, `Stim` |
 | Run | Loop controls, tick table | `Neurons.loop`, `Loop`, `LoopTick` |

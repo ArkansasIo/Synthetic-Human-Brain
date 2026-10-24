@@ -23,6 +23,11 @@ client (`desktop/python/app.py`), with the source file or handler behind it.
 | Recording | Show Report | `cl1_report` | `Recording.spikes`/`stims` |
 | Run | Run Loop… | `cl1_run_loop` | `Neurons.loop`, `Loop`, `LoopTick` |
 
+All CL1 actions are also available as buttons on the CL1 Clone → Control Panel
+page, which additionally shows a live status strip (session state, channel
+count, recording state, simulator timestamp) and the stim-designer form on the
+Stim Designer sub-page.
+
 ## Simulation
 
 | Sub-menu | Action | Handler / source |
