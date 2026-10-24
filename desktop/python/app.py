@@ -312,6 +312,7 @@ class ResearcherClient(QMainWindow):
         telemetry = self._simple_tab("Telemetry", self.load_telemetry)
         jobs = self._simple_tab("Jobs", self.load_jobs)
         servers = self._simple_tab("Servers", self.load_servers)
+        hardware_tab = self._hardware_tab()
         cl1_tab = self._cl1_tab()
         script_tab = self._script_tab()
         network_tab = self._network_sim_tab()
@@ -326,6 +327,7 @@ class ResearcherClient(QMainWindow):
         self.tabs.addTab(telemetry, "Telemetry")
         self.tabs.addTab(jobs, "Jobs")
         self.tabs.addTab(servers, "Servers")
+        self.tabs.addTab(hardware_tab, "Hardware")
 
         self._build_menus()
 
@@ -372,6 +374,100 @@ class ResearcherClient(QMainWindow):
         sub.addTab(self._cl1_modules_page(), "Modules")
         layout.addWidget(sub)
         return panel
+
+    # -- hardware devices page ---------------------------------------------
+
+    def _hardware_tab(self) -> QWidget:
+        """Hardware devices page: plugin list, connect/stim/read controls."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.addWidget(QLabel("Hardware devices — plugins for real and virtual neural interfaces."))
+
+        self.hardware_tree = QTreeWidget()
+        self.hardware_tree.setHeaderLabels(["Device", "Kind", "Channels", "Connected"])
+        layout.addWidget(self.hardware_tree)
+
+        row = QHBoxLayout()
+        self.hardware_device = QLineEdit("cl1-labs-virtual")
+        self.hardware_channels = QLineEdit("10,20")
+        connect_btn = QPushButton("Connect")
+        connect_btn.clicked.connect(self.hardware_connect)
+        disconnect_btn = QPushButton("Disconnect")
+        disconnect_btn.clicked.connect(self.hardware_disconnect)
+        stim_btn = QPushButton("Send Stim")
+        stim_btn.clicked.connect(self.hardware_stim)
+        read_btn = QPushButton("Read Frame")
+        read_btn.clicked.connect(self.hardware_read)
+        for widget in (self.hardware_device, connect_btn, disconnect_btn, stim_btn, self.hardware_channels, read_btn):
+            row.addWidget(widget)
+        layout.addLayout(row)
+        return panel
+
+    def _hardware_headers(self) -> dict[str, str]:
+        return self.auth_headers()
+
+    def hardware_refresh(self) -> None:
+        if not self._require_server():
+            return
+        try:
+            response = httpx.get(f"{self.server_url}/api/v1/hardware", headers=self._hardware_headers(), timeout=5.0)
+            response.raise_for_status()
+            self.hardware_tree.clear()
+            for device in response.json()["items"]:
+                QTreeWidgetItem(
+                    self.hardware_tree,
+                    [device["id"], device["kind"], str(device["channels"]), "yes" if device["connected"] else "no"],
+                )
+            self.hardware_tree.resizeColumnToContents(0)
+            self.log("Hardware device list refreshed.")
+        except Exception as exc:
+            self.log(f"Hardware list failed: {exc}")
+
+    def hardware_connect(self) -> None:
+        device = self.hardware_device.text().strip()
+        try:
+            response = httpx.post(f"{self.server_url}/api/v1/hardware/{device}/connect", headers=self._hardware_headers(), timeout=5.0)
+            response.raise_for_status()
+            self.log(f"Connected device {device}.")
+        except Exception as exc:
+            self.log(f"Connect failed: {exc}")
+        self.hardware_refresh()
+
+    def hardware_disconnect(self) -> None:
+        device = self.hardware_device.text().strip()
+        try:
+            response = httpx.post(f"{self.server_url}/api/v1/hardware/{device}/disconnect", headers=self._hardware_headers(), timeout=5.0)
+            response.raise_for_status()
+            self.log(f"Disconnected device {device}.")
+        except Exception as exc:
+            self.log(f"Disconnect failed: {exc}")
+        self.hardware_refresh()
+
+    def hardware_stim(self) -> None:
+        device = self.hardware_device.text().strip()
+        try:
+            channels = [int(part) for part in self.hardware_channels.text().split(",") if part.strip()]
+            response = httpx.post(
+                f"{self.server_url}/api/v1/hardware/{device}/stim",
+                headers=self._hardware_headers(),
+                json={"channels": channels},
+                timeout=5.0,
+            )
+            response.raise_for_status()
+            self.log(f"Stim delivered to {device} on channels {channels}.")
+        except Exception as exc:
+            self.log(f"Stim failed: {exc}")
+
+    def hardware_read(self) -> None:
+        device = self.hardware_device.text().strip()
+        try:
+            response = httpx.get(f"{self.server_url}/api/v1/hardware/{device}/read", headers=self._hardware_headers(), timeout=5.0)
+            response.raise_for_status()
+            frames = response.json()["frames"]
+            active = [f for f in frames if f.get("has_spike") or f.get("has_stim")]
+            self.log(f"Read {device}: {len(frames)} channels, active events: {active[:8]}")
+        except Exception as exc:
+            self.log(f"Read failed: {exc}")
 
     # -- CL1 control panel ---------------------------------------------------
 

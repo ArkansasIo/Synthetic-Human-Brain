@@ -1,4 +1,31 @@
 use crate::platform::Platform;
+use crate::cl1_labs_bridge;
+
+/// Hardware plugin exposing the CL1-Neural-labs 64-channel simulated dish
+/// as a virtual device with the Cortical Labs channel map.
+pub struct Cl1LabsVirtualDevice {
+    inner: VirtualHardware,
+}
+
+impl Cl1LabsVirtualDevice {
+    pub fn new(id: impl Into<String>) -> Self {
+        Self {
+            inner: VirtualHardware::new(id, "CL1-Neural-labs Virtual Dish"),
+        }
+    }
+
+    /// Valid stim channels per the CL1 protocol (excludes grounded/reference).
+    pub fn stim_channels(&self) -> Vec<usize> {
+        (0..cl1_labs_bridge::TOTAL_CHANNELS)
+            .filter(|ch| cl1_labs_bridge::is_stim_channel(*ch))
+            .collect()
+    }
+
+    /// Decode a broadcast frame into per-channel µV ranges and flags.
+    pub fn decode(&self, frame: &[u8]) -> Vec<cl1_labs_bridge::ChannelFrame> {
+        cl1_labs_bridge::decode_frame(frame)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HardwareKind {
@@ -93,5 +120,15 @@ mod tests {
         assert!(device.initialized());
         device.shutdown();
         assert!(!device.initialized());
+    }
+
+    #[test]
+    fn cl1_labs_device_channel_map() {
+        let device = Cl1LabsVirtualDevice::new("cl1-labs-0");
+        let stim = device.stim_channels();
+        // 64 channels minus 4 grounded minus 1 reference = 59 stim channels.
+        assert_eq!(stim.len(), 59);
+        assert!(!stim.contains(&0) && !stim.contains(&7) && !stim.contains(&4));
+        assert!(stim.contains(&1) && stim.contains(&10));
     }
 }

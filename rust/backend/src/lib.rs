@@ -13,3 +13,4 @@ pub use platform::Platform;
 pub use service::BackendService;
 pub use settings::{MySqlSettings, OptionSettings, Settings, WorkerSettings};
 pub use store::{ExperimentRecord, MySqlConfig};
+pub mod cl1_labs_bridge;

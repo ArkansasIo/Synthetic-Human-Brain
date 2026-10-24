@@ -16,6 +16,7 @@ from . import models
 from .auth import authenticate_user, issue_token, new_session_id, register_user
 from .config import settings
 from .db import db_session
+from .hardware import HardwareError, hardware_registry
 from .job_events import publish_job_event
 from .job_router import select_worker
 from .models import AuditLog, Experiment, Job, Project, ProjectMember, Role, Server, Session, TelemetryEvent, User, UserRole, Worker
@@ -400,6 +401,49 @@ async def validate_synapse_model(spec: SynapseModelSpec, user: User = Depends(cu
     except (ImportError, ValueError, TypeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return {"valid": True, "sample_transmit": value}
+
+
+@app.get("/api/v1/hardware")
+async def list_hardware(user: User = Depends(current_user)) -> dict:
+    """List every registered hardware device and its connection state."""
+    return {"items": [info.__dict__ for info in hardware_registry.list()]}
+
+
+@app.post("/api/v1/hardware/{device_id}/connect")
+async def connect_hardware(device_id: str, user: User = Depends(current_user)) -> dict:
+    try:
+        hardware_registry.connect(device_id)
+    except HardwareError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return {"id": device_id, "connected": True}
+
+
+@app.post("/api/v1/hardware/{device_id}/disconnect")
+async def disconnect_hardware(device_id: str, user: User = Depends(current_user)) -> dict:
+    hardware_registry.disconnect(device_id)
+    return {"id": device_id, "connected": False}
+
+
+@app.get("/api/v1/hardware/{device_id}/read")
+async def read_hardware(device_id: str, user: User = Depends(current_user)) -> dict:
+    try:
+        frames = hardware_registry.get(device_id).read()
+    except HardwareError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return {"id": device_id, "frames": frames}
+
+
+class HardwareStimRequest(BaseModel):
+    channels: list[int] = Field(min_length=1)
+
+
+@app.post("/api/v1/hardware/{device_id}/stim")
+async def stim_hardware(device_id: str, request: HardwareStimRequest, user: User = Depends(current_user)) -> dict:
+    try:
+        hardware_registry.stim(device_id, request.channels)
+    except HardwareError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"id": device_id, "stimulated": request.channels}
 
 
 @app.get("/api/v1/servers")

@@ -23,6 +23,7 @@ backend for the desktop GUI and web client.
 | `worker_registry.py` | 2.6 KB | Worker registration and heartbeat bookkeeping. |
 | `rust_client.py` | 0.9 KB | `dispatch_job` — HTTP call to the Rust backend (`SYNTHETIC_BRAIN_RUST_BACKEND_URL`). |
 | `protocol.py` | — | `envelope()` — consistent WebSocket message envelope. |
+| `cl1_labs_bridge.py` | CL1-Neural-labs protocol bridge — ported from `integration/cl1_labs_ts/server.ts`: stim channel validation, 384-byte little-endian binary frame codec, `/_/config` payload, `CultureParameters` defaults. |
 | `experiments.py` | 1.0 KB | Experiment schema helpers. |
 
 ## Entry points

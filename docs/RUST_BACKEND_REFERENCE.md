@@ -30,6 +30,7 @@ never accessed directly by the desktop GUI or web client.
 | `src/platform_targets.rs` | Compile-time platform target helpers. |
 | `src/settings.rs` | `Settings`, `MySqlSettings`, `WorkerSettings`, `OptionSettings` — environment-driven configuration (`SYNTHETIC_DRAIN_*`/`SYNTHETIC_BRAIN_*` variables), settings tests. |
 | `src/store.rs` | `MySqlConfig`, `ExperimentRecord` — database-facing types matching the MySQL schema in `server/config/mysql/schema.sql`. |
+| `src/cl1_labs_bridge.rs` | CL1-Neural-labs protocol bridge: binary frame codec (384-byte little-endian int16×3), stim channel validation, discovery payload. Ported from `integration/cl1_labs_ts/server.ts`. |
 
 ### `rust/server/` — HTTP server binary (`synthetic-brain-server`)
 
