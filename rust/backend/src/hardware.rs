@@ -14,6 +14,16 @@ impl Cl1LabsVirtualDevice {
         }
     }
 
+    /// Underlying device descriptor (id, name, capabilities).
+    pub fn device(&self) -> &HardwareDevice {
+        self.inner.device()
+    }
+
+    /// True after `HardwarePlugin::initialize` has been called.
+    pub fn is_initialized(&self) -> bool {
+        self.inner.initialized()
+    }
+
     /// Valid stim channels per the CL1 protocol (excludes grounded/reference).
     pub fn stim_channels(&self) -> Vec<usize> {
         (0..cl1_labs_bridge::TOTAL_CHANNELS)

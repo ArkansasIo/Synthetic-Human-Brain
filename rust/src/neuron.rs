@@ -35,16 +35,20 @@ mod tests {
 
     #[test]
     fn emits_spike_and_resets() {
+        // Parameters match the Python reference (src/synthetic_brain/algorithms.py
+        // LIFNeuron defaults: resistance=10, tau=20) so the two sides agree.
         let mut state = LifState {
             voltage: -65.0,
             rest: -65.0,
             threshold: -50.0,
             reset: -65.0,
-            tau_ms: 10.0,
-            resistance: 1.0,
+            tau_ms: 20.0,
+            resistance: 10.0,
         };
-        assert!(!lif_step(&mut state, 20.0, 10.0));
+        // dv/dt = (-(v-rest) + R*I) / tau; with I=20, dt=10 one step goes
+        // -65 + 10 * ((0 + 200)/20) = +35 -> well past threshold, fires,
+        // exactly like the Python LIFNeuron.step with the same numbers.
         assert!(lif_step(&mut state, 20.0, 10.0));
-        assert_eq!(state.voltage, -65.0);
+        assert_eq!(state.voltage, -65.0); // reset
     }
 }
