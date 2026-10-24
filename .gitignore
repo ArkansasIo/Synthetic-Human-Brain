@@ -24,3 +24,4 @@ rust/backend/target/
 dist/
 build/pyinstaller/
 rust/server-bin/target/
+rust/server/target/
