@@ -16,3 +16,4 @@ pub use store::{ExperimentRecord, MySqlConfig};
 pub mod cl1_labs_bridge;
 pub mod hardware_pipeline;
 pub mod synapse;
+pub mod neuron;
