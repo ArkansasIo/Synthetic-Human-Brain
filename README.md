@@ -49,6 +49,11 @@ This project separates **measured data**, **inferred state**, **simulated state*
 - [Experiments](docs/EXPERIMENTS.md)
 - [Safety and limitations](docs/SAFETY_AND_LIMITATIONS.md)
 - [UML index](docs/uml/README.md)
+- [Source map (Python/Rust/front end)](docs/SOURCE_MAP.md)
+- [Python server reference](docs/PYTHON_SERVER_REFERENCE.md)
+- [Rust backend reference](docs/RUST_BACKEND_REFERENCE.md)
+- [Front end reference](docs/FRONTEND_REFERENCE.md)
+- [GUI menus and pages](docs/GUI_MENUS_REFERENCE.md)
 
 ## Repository layout
 
