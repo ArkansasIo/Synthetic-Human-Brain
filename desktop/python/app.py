@@ -8,9 +8,12 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QAction, QColor, QKeySequence, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QDialog,
     QDoubleSpinBox,
     QFormLayout,
+    QGridLayout,
+    QHBoxLayout,
     QInputDialog,
     QLabel,
     QLineEdit,
@@ -18,6 +21,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSpinBox,
     QTabWidget,
     QTextEdit,
     QTreeWidget,
@@ -356,15 +360,158 @@ class ResearcherClient(QMainWindow):
         panel = QWidget()
         layout = QVBoxLayout(panel)
         sub = QTabWidget()
+        sub.addTab(self._cl1_control_page(), "Control Panel")
         sub.addTab(self._cl1_session_page(), "Session")
         sub.addTab(self._cl1_stimulation_page(), "Stimulation")
+        sub.addTab(self._cl1_designer_page(), "Stim Designer")
         sub.addTab(self._cl1_recording_page(), "Recording")
         sub.addTab(self._cl1_run_page(), "Run")
         sub.addTab(self._cl1_analytics_page(), "Graphics & Charts")
+        sub.addTab(self._cl1_session_info_page(), "Session Info")
         sub.addTab(self._cl1_sources_page(), "Information Source Files")
         sub.addTab(self._cl1_modules_page(), "Modules")
         layout.addWidget(sub)
         return panel
+
+    # -- CL1 control panel ---------------------------------------------------
+
+    def _cl1_control_page(self) -> QWidget:
+        """One-glance control panel: primary action buttons + live status."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+
+        status = self._cl1_status_strip()
+        layout.addWidget(status)
+
+        grid = QGridLayout()
+        actions = [
+            ("▶ Open Session", self.cl1_open),
+            ("⏹ Close Session", self.cl1_close),
+            ("⚡ Quick Stim", self.cl1_stim),
+            ("⏺ Start Recording", self.cl1_record),
+            ("⏹ Stop Recording", self.cl1_stop_recording),
+            ("▶ Run Loop", self.cl1_run_loop),
+            ("📊 Spike Raster", lambda: self._focus_cl1_subpage("Graphics & Charts")),
+            ("📈 Report", self.cl1_report),
+        ]
+        for index, (label, handler) in enumerate(actions):
+            button = QPushButton(label)
+            button.setMinimumHeight(42)
+            button.clicked.connect(handler)
+            grid.addWidget(button, index // 2, index % 2)
+        layout.addLayout(grid)
+
+        layout.addWidget(QLabel("Output:"))
+        layout.addWidget(self.output)
+        return panel
+
+    def _cl1_status_strip(self) -> QWidget:
+        strip = QWidget()
+        row = QHBoxLayout(strip)
+        self.lbl_session = QLabel("Session: closed")
+        self.lbl_channels = QLabel("Channels: —")
+        self.lbl_recording = QLabel("Recording: idle")
+        self.lbl_timestamp = QLabel("Timestamp: 0")
+        for label in (self.lbl_session, self.lbl_channels, self.lbl_recording, self.lbl_timestamp):
+            label.setStyleSheet("QLabel { background: #12121c; color: #9fd6c8; padding: 6px 10px; border-radius: 6px; }")
+            row.addWidget(label)
+        return strip
+
+    def _cl1_refresh_status(self) -> None:
+        if getattr(self, "lbl_session", None) is None:
+            return
+        if self.neurons is None:
+            self.lbl_session.setText("Session: closed")
+            self.lbl_channels.setText("Channels: —")
+            self.lbl_recording.setText("Recording: idle")
+            self.lbl_timestamp.setText("Timestamp: 0")
+            return
+        self.lbl_session.setText("Session: open")
+        self.lbl_channels.setText(f"Channels: {self.neurons.channel_count}")
+        state = "recording" if self.recording is not None else "idle"
+        self.lbl_recording.setText(f"Recording: {state}")
+        self.lbl_timestamp.setText(f"Timestamp: {self.neurons.timestamp()}")
+
+    def _cl1_designer_page(self) -> QWidget:
+        """Stim designer form: channels, amplitude, pulses, frequency — live preview."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.addWidget(QLabel("Stim designer — configure the pulse, then deliver."))
+
+        form = QFormLayout()
+        self.dsg_channels = QLineEdit("0-3")
+        self.dsg_amplitude = QDoubleSpinBox()
+        self.dsg_amplitude.setRange(1.0, 4000.0)
+        self.dsg_amplitude.setValue(80.0)
+        self.dsg_amplitude.setSuffix(" µA")
+        self.dsg_pulses = QSpinBox()
+        self.dsg_pulses.setRange(1, 1000)
+        self.dsg_pulses.setValue(2)
+        self.dsg_frequency = QDoubleSpinBox()
+        self.dsg_frequency.setRange(0.1, 10000.0)
+        self.dsg_frequency.setValue(100.0)
+        self.dsg_frequency.setSuffix(" Hz")
+        self.dsg_mode = QComboBox()
+        self.dsg_mode.addItems(["biphasic (±)", "monophasic (+)"])
+        form.addRow("Channels", self.dsg_channels)
+        form.addRow("Amplitude", self.dsg_amplitude)
+        form.addRow("Pulse count", self.dsg_pulses)
+        form.addRow("Burst frequency", self.dsg_frequency)
+        form.addRow("Waveform", self.dsg_mode)
+        layout.addLayout(form)
+
+        deliver = QPushButton("Deliver designed stimulus")
+        deliver.setMinimumHeight(40)
+        deliver.clicked.connect(self.cl1_deliver_designed)
+        layout.addWidget(deliver)
+        layout.addWidget(QLabel("Channels accept ranges (0-3), lists (1,4,7), or mixed (0-1,5)."))
+        return panel
+
+    def cl1_deliver_designed(self) -> None:
+        if not self._require_simulator():
+            return
+        monophasic = self.dsg_mode.currentText().startswith("mono")
+        amplitude = self.dsg_amplitude.value()
+        self._apply_stim(
+            channels_text=self.dsg_channels.text(),
+            amplitude=amplitude,
+            pulses=self.dsg_pulses.value(),
+            frequency=self.dsg_frequency.value(),
+            monophasic=monophasic,
+        )
+
+    def _cl1_session_info_page(self) -> QWidget:
+        """Session info: live parameters and research-boundary details."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        self.info_tree = QTreeWidget()
+        self.info_tree.setHeaderLabels(["Property", "Value"])
+        refresh = QPushButton("Refresh session info")
+        refresh.clicked.connect(self.cl1_refresh_info)
+        layout.addWidget(refresh)
+        layout.addWidget(self.info_tree)
+        layout.addWidget(QLabel(
+            "Research boundary: software simulation only — not a biological culture, "
+            "not a Cortical Labs CL1 dish, not a medical device."
+        ))
+        return panel
+
+    def cl1_refresh_info(self) -> None:
+        self.info_tree.clear()
+        if self.neurons is None:
+            QTreeWidgetItem(self.info_tree, ["Session", "closed"])
+        else:
+            QTreeWidgetItem(self.info_tree, ["Session", "open"])
+            QTreeWidgetItem(self.info_tree, ["Channel count", str(self.neurons.channel_count)])
+            QTreeWidgetItem(self.info_tree, ["Sample rate", f"{SAMPLE_RATE_HZ} Hz"])
+            QTreeWidgetItem(self.info_tree, ["Simulator timestamp", str(self.neurons.timestamp())])
+            QTreeWidgetItem(self.info_tree, ["Recording", "active" if self.recording is not None else "idle"])
+            if self.recording is not None:
+                QTreeWidgetItem(self.info_tree, ["Recorded spikes", str(len(self.recording.spikes))])
+                QTreeWidgetItem(self.info_tree, ["Recorded stims", str(len(self.recording.stims))])
+        QTreeWidgetItem(self.info_tree, ["Source", "synthetic_brain.cl1_clone (in-process simulator)"])
+        self.info_tree.resizeColumnToContents(0)
+        self._cl1_refresh_status()
 
     def _cl1_session_page(self) -> QWidget:
         panel = QWidget()
@@ -795,6 +942,31 @@ class ResearcherClient(QMainWindow):
 
     # -- CL1 clone actions ---------------------------------------------------
 
+    def _apply_stim(self, channels_text: str, amplitude: float, pulses: int, frequency: float, monophasic: bool = False) -> None:
+        try:
+            from synthetic_brain.cl1_clone import BurstDesign, ChannelSet, StimDesign
+
+            channels_parsed: list[int] = []
+            for part in channels_text.split(","):
+                part = part.strip()
+                if "-" in part:
+                    lo, hi = part.split("-", 1)
+                    channels_parsed.extend(range(int(lo), int(hi) + 1))
+                elif part:
+                    channels_parsed.append(int(part))
+            channel_set = ChannelSet(*channels_parsed) if channels_parsed else ChannelSet(0)
+            if monophasic:
+                stim_design = StimDesign(160, amplitude)
+            else:
+                stim_design = StimDesign(160, -amplitude, 160, amplitude)
+            burst = BurstDesign(count=pulses, frequency_hz=frequency)
+            self.neurons.stim(channel_set, stim_design, burst)
+            waveform = "mono" if monophasic else "bi"
+            self.log(f"Stim delivered ({waveform}): channels={list(channel_set)}, {amplitude} µA, pulses={pulses}, freq={frequency} Hz")
+        except Exception as exc:
+            self.log(f"Stim failed: {exc}")
+        self._cl1_refresh_status()
+
     def cl1_open(self) -> None:
         channels, ok = QInputDialog.getInt(self, "Open Simulator", "Channel count:", 64, 1, 4096)
         if not ok:
@@ -812,6 +984,7 @@ class ResearcherClient(QMainWindow):
             self.log(f"CL1 session opened: {channels} channels, seed {seed}, sample rate {SAMPLE_RATE_HZ} Hz")
         except Exception as exc:
             self.log(f"Open failed: {exc}")
+        self._cl1_refresh_status()
 
     def cl1_close(self) -> None:
         if self.neurons is not None:
@@ -822,6 +995,7 @@ class ResearcherClient(QMainWindow):
                 self.log(f"Close failed: {exc}")
             self.neurons = None
             self.recording = None
+        self._cl1_refresh_status()
 
     def cl1_stim(self) -> None:
         self._stim_dialog(channels="0-3", amplitude=80.0, burst_count=2, frequency=100.0)
@@ -875,6 +1049,7 @@ class ResearcherClient(QMainWindow):
             return
         self.recording = self.neurons.record(source="desktop-client")
         self.log("Recording started.")
+        self._cl1_refresh_status()
 
     def cl1_stop_recording(self) -> None:
         if self.recording is None:
@@ -883,6 +1058,7 @@ class ResearcherClient(QMainWindow):
         self.recording.stop()
         self.log(f"Recording stopped: {len(self.recording.spikes)} spikes, {len(self.recording.stims)} stims captured.")
         self.recording = None
+        self._cl1_refresh_status()
 
     def cl1_report(self) -> None:
         if self.recording is None:
