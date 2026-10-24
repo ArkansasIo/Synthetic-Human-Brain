@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QInputDialog,
@@ -33,6 +34,87 @@ from PySide6.QtWidgets import (
 )
 
 SAMPLE_RATE_HZ = 25_000
+
+
+# ---------------------------------------------------------------------------
+# UI theme — modern dark laboratory aesthetic
+# ---------------------------------------------------------------------------
+
+THEME = {
+    "bg": "#0f1117",
+    "panel": "#161a23",
+    "panel_alt": "#1c2130",
+    "border": "#2a3040",
+    "accent": "#4fd1a5",
+    "accent_dim": "#2e8f74",
+    "accent2": "#5b8def",
+    "text": "#e8ecf1",
+    "text_dim": "#8a94a6",
+    "danger": "#e05c5c",
+    "warn": "#e0a94f",
+}
+
+
+def build_stylesheet() -> str:
+    t = THEME
+    return f"""
+    QWidget {{ background: {t['bg']}; color: {t['text']}; font-family: 'Segoe UI'; font-size: 13px; }}
+    QMainWindow, QDialog {{ background: {t['bg']}; }}
+
+    QLabel#appTitle {{ font-size: 22px; font-weight: 700; color: {t['accent']}; }}
+    QLabel#appSubtitle {{ color: {t['text_dim']}; font-size: 12px; }}
+    QLabel#badge {{
+        background: {t['panel_alt']}; border: 1px solid {t['border']};
+        border-radius: 10px; padding: 4px 12px; color: {t['text_dim']}; font-size: 12px;
+    }}
+    QLabel#badgeOn {{ background: rgba(79,209,165,0.12); border: 1px solid {t['accent_dim']};
+        border-radius: 10px; padding: 4px 12px; color: {t['accent']}; font-size: 12px; }}
+
+    QPushButton {{
+        background: {t['panel_alt']}; border: 1px solid {t['border']}; border-radius: 8px;
+        padding: 8px 16px; color: {t['text']};
+    }}
+    QPushButton:hover {{ border-color: {t['accent_dim']}; background: {t['panel']}; }}
+    QPushButton:pressed {{ background: {t['bg']}; }}
+    QPushButton#primary {{
+        background: {t['accent_dim']}; border: 1px solid {t['accent']}; color: #08221b; font-weight: 600;
+    }}
+    QPushButton#primary:hover {{ background: {t['accent']}; }}
+    QPushButton#danger {{ border-color: {t['danger']}; color: {t['danger']}; }}
+
+    QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
+        background: {t['panel']}; border: 1px solid {t['border']}; border-radius: 6px;
+        padding: 6px 8px; color: {t['text']}; selection-background-color: {t['accent_dim']};
+    }}
+    QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{ border-color: {t['accent_dim']}; }}
+
+    QTabWidget::pane {{ border: 1px solid {t['border']}; border-radius: 8px; top: -1px; }}
+    QTabBar::tab {{
+        background: transparent; color: {t['text_dim']}; padding: 8px 18px;
+        border: none; border-bottom: 2px solid transparent;
+    }}
+    QTabBar::tab:selected {{ color: {t['accent']}; border-bottom: 2px solid {t['accent']}; }}
+    QTabBar::tab:hover {{ color: {t['text']}; }}
+
+    QTreeWidget {{
+        background: {t['panel']}; border: 1px solid {t['border']}; border-radius: 8px;
+        alternate-background-color: {t['panel_alt']};
+    }}
+    QHeaderView::section {{
+        background: {t['panel_alt']}; color: {t['text_dim']}; border: none;
+        border-bottom: 1px solid {t['border']}; padding: 6px;
+    }}
+
+    QStatusBar {{ background: {t['panel']}; border-top: 1px solid {t['border']}; color: {t['text_dim']}; }}
+    QMenuBar {{ background: {t['bg']}; color: {t['text_dim']}; }}
+    QMenuBar::item:selected {{ color: {t['accent']}; }}
+    QMenu {{ background: {t['panel']}; border: 1px solid {t['border']}; }}
+    QMenu::item:selected {{ background: {t['accent_dim']}; color: #08221b; }}
+    QSplitter::handle {{ background: {t['border']}; width: 2px; }}
+    QScrollBar:vertical {{ background: {t['bg']}; width: 10px; }}
+    QScrollBar::handle:vertical {{ background: {t['border']}; border-radius: 5px; min-height: 30px; }}
+    QScrollBar::handle:vertical:hover {{ background: {t['accent_dim']}; }}
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -227,23 +309,41 @@ class LoginDialog(QDialog):
         self.token: str | None = None
         self.user: dict = {}
         self.setWindowTitle("Synthetic Human Brain — Researcher Login")
-        self.resize(420, 220)
+        self.resize(460, 280)
 
-        layout = QFormLayout(self)
+        outer = QVBoxLayout(self)
+        title = QLabel("Synthetic Human Brain")
+        title.setObjectName("appTitle")
+        subtitle = QLabel("Research workstation — sign in to the collaboration server")
+        subtitle.setObjectName("appSubtitle")
+        outer.addWidget(title)
+        outer.addWidget(subtitle)
+        outer.addSpacing(10)
+
+        layout = QFormLayout()
         self.server = QLineEdit(self.server_url)
         self.username = QLineEdit()
+        self.username.setPlaceholderText("researcher id")
         self.password = QLineEdit()
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
         self.client_id = QLineEdit("desktop-researcher")
-        login = QPushButton("Sign in")
-        register = QPushButton("Register new researcher")
-        login.clicked.connect(self._login)
-        register.clicked.connect(self._register)
         layout.addRow("Server", self.server)
         layout.addRow("Username", self.username)
         layout.addRow("Password", self.password)
         layout.addRow("Client ID", self.client_id)
-        layout.addRow(login, register)
+        outer.addLayout(layout)
+
+        buttons = QHBoxLayout()
+        login = QPushButton("Sign in")
+        login.setObjectName("primary")
+        login.setMinimumHeight(38)
+        register = QPushButton("Register")
+        register.setMinimumHeight(38)
+        login.clicked.connect(self._login)
+        register.clicked.connect(self._register)
+        buttons.addWidget(login)
+        buttons.addWidget(register)
+        outer.addLayout(buttons)
 
     def _payload(self) -> dict:
         return {
@@ -287,25 +387,42 @@ class ResearcherClient(QMainWindow):
         self.token: str | None = None
         self.user: dict = {}
         self.setWindowTitle("Synthetic Human Brain Researcher")
-        self.resize(1280, 800)
+        self.resize(1440, 900)
 
         self.neurons: Any = None
         self.recording: Any = None
         self.loop_ticks = 0
 
+        # -- header ------------------------------------------------------------
+        header = QFrame()
+        header.setObjectName("header")
+        hlayout = QHBoxLayout(header)
+        hlayout.setContentsMargins(16, 10, 16, 10)
+        titles = QVBoxLayout()
+        app_title = QLabel("Synthetic Human Brain")
+        app_title.setObjectName("appTitle")
+        self.subtitle = QLabel("Research workstation — not a clinical device")
+        self.subtitle.setObjectName("appSubtitle")
+        titles.addWidget(app_title)
+        titles.addWidget(self.subtitle)
+        hlayout.addLayout(titles)
+        hlayout.addStretch()
+        self.badge_auth = QLabel("● not authenticated")
+        self.badge_auth.setObjectName("badge")
+        self.badge_server = QLabel("● server offline")
+        self.badge_server.setObjectName("badge")
+        self.badge_ticks = QLabel("ticks: 0")
+        self.badge_ticks.setObjectName("badge")
+        for badge in (self.badge_ticks, self.badge_server, self.badge_auth):
+            hlayout.addWidget(badge)
+
+        # -- output console -----------------------------------------------------
         self.output = QPlainTextEdit()
         self.output.setReadOnly(True)
+        self.output.setMaximumHeight(180)
         self.output.setPlaceholderText("Output from server requests and CL1 clone operations appears here.")
 
-        self.brainscript = QTextEdit()
-        self.brainscript.setPlainText(
-            "brain Cortex {\n"
-            "    population Excitatory size 100\n"
-            "    population Inhibitory size 25\n"
-            "    connect Excitatory -> Inhibitory weight 0.2 delay 1.5\n"
-            "}"
-        )
-
+        # -- tabs ----------------------------------------------------------------
         self.tabs = QTabWidget()
         dashboard = self._dashboard_tab()
         projects = self._simple_tab("Projects", self.load_projects)
@@ -334,12 +451,76 @@ class ResearcherClient(QMainWindow):
         self._build_menus()
 
         central = QWidget()
-        layout = QVBoxLayout(central)
-        layout.addWidget(self.tabs)
-        layout.addWidget(QLabel("Output:"))
-        layout.addWidget(self.output)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+        root.addWidget(header)
+        body = QHBoxLayout()
+        body.setContentsMargins(12, 12, 12, 12)
+        body.setSpacing(12)
+
+        # -- sidebar navigation --------------------------------------------------
+        nav = QFrame()
+        nav.setFixedWidth(210)
+        nav.setObjectName("sidebar")
+        nav.setStyleSheet(
+            f"QFrame#sidebar {{ background: {THEME['panel']}; border: 1px solid {THEME['border']};"
+            f" border-radius: 10px; }}"
+        )
+        navlayout = QVBoxLayout(nav)
+        navlayout.setContentsMargins(8, 10, 8, 10)
+        navlayout.setSpacing(2)
+        self.nav_buttons: list[QPushButton] = []
+        for index, label in enumerate(
+            ["Dashboard", "CL1 Clone", "Network Simulation", "BrainScript", "Projects",
+             "Experiments", "Brain Regions", "Telemetry", "Jobs", "Servers", "Hardware"]
+        ):
+            button = QPushButton(label)
+            button.setFlat(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setStyleSheet(
+                "QPushButton { text-align: left; padding: 8px 12px; border-radius: 8px;"
+                f" color: {THEME['text_dim']}; background: transparent; border: none; }}"
+                "QPushButton:hover { color: " + THEME["text"] + "; background: " + THEME['panel_alt'] + "; }"
+                "QPushButton:checked { color: " + THEME["accent"] + "; background: " + THEME["panel_alt"] + ";"
+                " font-weight: 600; }"
+            )
+            button.setCheckable(True)
+            button.clicked.connect(lambda _=False, i=index: self._select_nav(i))
+            navlayout.addWidget(button)
+            self.nav_buttons.append(button)
+        navlayout.addStretch()
+        body.addWidget(nav)
+        tabs_panel = QFrame()
+        tabs_panel.setStyleSheet(
+            f"QFrame {{ background: {THEME['panel']}; border: 1px solid {THEME['border']};"
+            f" border-radius: 10px; }} QTabWidget::pane {{ border: none; }}"
+        )
+        tabs_layout = QVBoxLayout(tabs_panel)
+        tabs_layout.setContentsMargins(4, 4, 4, 4)
+        tabs_layout.addWidget(self.tabs)
+        body.addWidget(tabs_panel, 1)
+
+        console_panel = QFrame()
+        console_panel.setStyleSheet(
+            f"QFrame {{ background: {THEME['panel']}; border: 1px solid {THEME['border']};"
+            f" border-radius: 10px; }}"
+        )
+        console_layout = QVBoxLayout(console_panel)
+        console_layout.setContentsMargins(10, 6, 10, 8)
+        console_label = QLabel("Console")
+        console_label.setObjectName("appSubtitle")
+        console_layout.addWidget(console_label)
+        console_layout.addWidget(self.output)
+        root.addLayout(body, 1)
+        root.addWidget(console_panel)
         self.setCentralWidget(central)
         self.statusBar().showMessage("Not authenticated")
+
+    def _select_nav(self, index: int) -> None:
+        self.tabs.setCurrentIndex(index)
+        for i, button in enumerate(self.nav_buttons):
+            button.setChecked(i == index)
 
     # -- tab builders ------------------------------------------------------
 
@@ -883,7 +1064,17 @@ class ResearcherClient(QMainWindow):
         panel = QWidget()
         layout = QVBoxLayout(panel)
         run = QPushButton("Compile & Run BrainScript")
+        run.setObjectName("primary")
         run.clicked.connect(self.run_brainscript)
+        self.brainscript = QTextEdit()
+        self.brainscript.setMinimumHeight(300)
+        self.brainscript.setPlainText(
+            "brain Cortex {\n"
+            "    population Excitatory size 100\n"
+            "    population Inhibitory size 25\n"
+            "    connect Excitatory -> Inhibitory weight 0.2 delay 1.5\n"
+            "}"
+        )
         layout.addWidget(run)
         layout.addWidget(self.brainscript)
         return panel
@@ -1007,12 +1198,33 @@ class ResearcherClient(QMainWindow):
 
     def log(self, text: str) -> None:
         self.output.appendPlainText(text)
+        self.update_badges()
 
     def _require_server(self) -> bool:
         if not self.token:
             QMessageBox.information(self, "Not signed in", "Sign in first (File → Connect to Server).")
             return False
         return True
+
+    def update_badges(self) -> None:
+        """Refresh the header status badges."""
+        if self.token:
+            self.badge_auth.setText(f"● {self.user.get('display_name') or self.user.get('username', 'researcher')}")
+            self.badge_auth.setObjectName("badgeOn")
+        else:
+            self.badge_auth.setText("● not authenticated")
+            self.badge_auth.setObjectName("badge")
+        try:
+            response = httpx.get(f"{self.server_url}/api/v1/health", timeout=2.0)
+            online = response.status_code == 200
+        except Exception:
+            online = False
+        self.badge_server.setText("● server online" if online else "● server offline")
+        self.badge_server.setObjectName("badgeOn" if online else "badge")
+        self.badge_ticks.setText(f"ticks: {self.loop_ticks}")
+        for badge in (self.badge_auth, self.badge_server, self.badge_ticks):
+            badge.style().unpolish(badge)
+            badge.style().polish(badge)
 
     def _require_simulator(self) -> bool:
         if self.neurons is None:
@@ -1273,9 +1485,11 @@ class ResearcherClient(QMainWindow):
 
 def main() -> int:
     app = QApplication(sys.argv)
+    app.setStyleSheet(build_stylesheet())
     server_url = "http://127.0.0.1:8787"
     window = ResearcherClient(server_url)
     login = LoginDialog(server_url)
+    login.setStyleSheet(build_stylesheet())
     if login.exec() != QDialog.DialogCode.Accepted:
         return 0
     window.server_url = login.server_url
@@ -1283,6 +1497,7 @@ def main() -> int:
     window.user = login.user
     window.statusBar().showMessage(f"Signed in as {login.user.get('display_name', login.user.get('username', 'researcher'))}")
     window.show()
+    window.update_badges()
     return app.exec()
 
 
