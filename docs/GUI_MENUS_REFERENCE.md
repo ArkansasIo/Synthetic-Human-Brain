@@ -55,7 +55,23 @@ Stim Designer sub-page.
 | Sub-menu | Entries |
 | --- | --- |
 | CL1 Clone Pages | Session, Stimulation, Recording, Run, Graphics & Charts, Information Source Files, Modules |
-| Pages | Dashboard, CL1 Clone, BrainScript, Projects, Experiments, Brain Regions, Telemetry, Jobs, Servers, Network Simulation |
+| Pages | Dashboard, CL1 Clone, BrainScript, Projects, Experiments, Brain Regions, Telemetry, Jobs, Servers, Hardware, Network Simulation |
+
+## Hardware
+
+The Hardware page (`_hardware_tab` in `desktop/python/app.py`) talks to the
+server's hardware plugin system (`server/python/app/hardware.py`):
+
+| Control | Handler | Server endpoint |
+| --- | --- | --- |
+| Device list | `hardware_refresh` | `GET /api/v1/hardware` |
+| Connect | `hardware_connect` | `POST /api/v1/hardware/{id}/connect` |
+| Disconnect | `hardware_disconnect` | `POST /api/v1/hardware/{id}/disconnect` |
+| Send Stim | `hardware_stim` | `POST /api/v1/hardware/{id}/stim` |
+| Read Frame | `hardware_read` | `GET /api/v1/hardware/{id}/read` |
+
+Shipped devices: `cl1-labs-virtual` (64-channel simulated dish),
+`serial-mea` (real pyserial hardware), `keyboard-input` (manual events).
 
 ## Help
 

@@ -52,7 +52,8 @@ file-level detail.
 | Core demo | `python -m synthetic_brain` | console simulation |
 | Desktop exe | PyInstaller → `dist/exe/SyntheticBrainResearcher.exe` | Windows app |
 | Rust server | `cargo build --release` (rust/server) | `dist/exe/synthetic-brain-server.exe` |
-| Rust tests | `cargo test` | 4 tests |
+| Rust headless bin | `cargo build` (rust/server-bin) | embedded/headless backend binary with settings guard |
+| Rust tests | `cargo test` | 7 tests (incl. CL1 bridge codec + hardware plugin) |
 | Web client | `npm run build` (web-client) | `web-client/dist/` |
 | API server | `uvicorn app.main:app --port 8787` | REST + WebSocket |
 | MySQL | `server/config/mysql/*.sql` | schema + seed + views |
