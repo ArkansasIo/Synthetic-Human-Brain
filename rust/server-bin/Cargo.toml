@@ -1,0 +1,23 @@
+# Synthetic Human Brain — release binary crate
+#
+# Builds the distributable backend executable (synthetic-brain-server.exe).
+# The backend library crate (`synthetic-brain-backend`) contains the API,
+# jobs, hardware, and MySQL store logic; this bin target links it into a
+# runnable server binary for the dist/exe output folder.
+
+[package]
+name = "synthetic-brain-server"
+version = "0.1.0"
+edition = "2021"
+description = "Executable server binary for the Synthetic Human Brain Rust backend."
+license = "Apache-2.0"
+
+[dependencies]
+synthetic-brain-backend = { path = "../backend" }
+
+[[bin]]
+name = "synthetic-brain-server"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
