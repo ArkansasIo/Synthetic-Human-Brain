@@ -495,18 +495,33 @@ async def worker_heartbeat(worker_id: str, request: WorkerHeartbeat, user: User 
     await session.commit()
     return {"id": worker.id, "status": worker.status, "last_heartbeat": worker.last_heartbeat.isoformat()}
 
+async def _reject_websocket(websocket: WebSocket, reason: str) -> None:
+    """Accept then reject with a readable reason instead of a bare 1008 close.
+
+    Closing before ``accept()`` surfaces to clients as an opaque code-1008
+    policy violation. Accepting and sending an explicit error frame lets the
+    desktop/web clients show the real cause (bad token, unknown device…).
+    """
+    await websocket.accept()
+    await websocket.send_json({"type": "error", "code": 4401, "detail": reason})
+    await websocket.close(code=1008, reason=reason)
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(default=None)) -> None:
     if not token:
-        await websocket.close(code=1008)
+        await _reject_websocket(websocket, "missing token — connect with ?token=<JWT> from /api/v1/auth/login")
         return
     try:
         claims = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         user_id, session_id = claims.get("sub"), claims.get("sid")
         if not user_id or not session_id:
             raise ValueError("missing token claims")
-    except (jwt.InvalidTokenError, ValueError):
-        await websocket.close(code=1008)
+    except jwt.ExpiredSignatureError:
+        await _reject_websocket(websocket, "token expired — sign in again")
+        return
+    except (jwt.InvalidTokenError, ValueError) as exc:
+        await _reject_websocket(websocket, f"invalid token: {exc}")
         return
     await websocket.accept()
     queue = telemetry_hub.subscribe()
@@ -536,17 +551,20 @@ async def hardware_stream_endpoint(
 ) -> None:
     """Live hardware frame stream: polls the device and broadcasts frames."""
     if not token:
-        await websocket.close(code=1008)
+        await _reject_websocket(websocket, "missing token — connect with ?token=<JWT>")
         return
     try:
         jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except jwt.InvalidTokenError:
-        await websocket.close(code=1008)
+    except jwt.ExpiredSignatureError:
+        await _reject_websocket(websocket, "token expired — sign in again")
+        return
+    except jwt.InvalidTokenError as exc:
+        await _reject_websocket(websocket, f"invalid token: {exc}")
         return
     try:
         plugin = hardware_registry.get(device_id)
-    except HardwareError:
-        await websocket.close(code=1008)
+    except HardwareError as exc:
+        await _reject_websocket(websocket, f"unknown device '{device_id}' — see GET /api/v1/hardware")
         return
     await websocket.accept()
     interval = 1.0 / rate_hz
