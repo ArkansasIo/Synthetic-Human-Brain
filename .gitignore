@@ -19,3 +19,4 @@ node_modules/
 rust/target/
 *.db
 server/python/synthetic_brain.db
+backend/target/
