@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -524,3 +525,50 @@ async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(def
         pass
     finally:
         telemetry_hub.unsubscribe(queue)
+
+
+@app.websocket("/ws/hardware/{device_id}")
+async def hardware_stream_endpoint(
+    websocket: WebSocket,
+    device_id: str,
+    token: str | None = Query(default=None),
+    rate_hz: float = Query(default=25.0, gt=0.0, le=100.0),
+) -> None:
+    """Live hardware frame stream: polls the device and broadcasts frames."""
+    if not token:
+        await websocket.close(code=1008)
+        return
+    try:
+        jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except jwt.InvalidTokenError:
+        await websocket.close(code=1008)
+        return
+    try:
+        plugin = hardware_registry.get(device_id)
+    except HardwareError:
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
+    interval = 1.0 / rate_hz
+    try:
+        while True:
+            start = time.perf_counter()
+            try:
+                frames = plugin.read()
+            except HardwareError as exc:
+                await websocket.send_json({"type": "hardware.error", "detail": str(exc)})
+                frames = []
+            active = [f for f in frames if f.get("has_spike") or f.get("has_stim") or "label" in f]
+            await websocket.send_json(
+                {
+                    "type": "hardware.frames",
+                    "device": device_id,
+                    "timestamp": int(time.time() * 1000),
+                    "frame_count": len(frames),
+                    "active": active[:16],
+                }
+            )
+            elapsed = time.perf_counter() - start
+            await asyncio.sleep(max(0.0, interval - elapsed))
+    except WebSocketDisconnect:
+        pass

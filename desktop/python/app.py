@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import sys
+import threading
 from typing import Any
 
 import httpx
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QObject
 from PySide6.QtGui import QAction, QColor, QKeySequence, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication,
@@ -398,9 +400,19 @@ class ResearcherClient(QMainWindow):
         stim_btn.clicked.connect(self.hardware_stim)
         read_btn = QPushButton("Read Frame")
         read_btn.clicked.connect(self.hardware_read)
+        self.stream_btn = QPushButton("Start Live Stream")
+        self.stream_btn.clicked.connect(self.hardware_toggle_stream)
+        self.lbl_stream = QLabel("Stream: stopped")
         for widget in (self.hardware_device, connect_btn, disconnect_btn, stim_btn, self.hardware_channels, read_btn):
             row.addWidget(widget)
         layout.addLayout(row)
+        row2 = QHBoxLayout()
+        row2.addWidget(self.stream_btn)
+        row2.addWidget(self.lbl_stream)
+        row2.addStretch(1)
+        layout.addLayout(row2)
+        self._stream_thread = None
+        self._stream_stop = threading.Event()
         return panel
 
     def _hardware_headers(self) -> dict[str, str]:
@@ -468,6 +480,55 @@ class ResearcherClient(QMainWindow):
             self.log(f"Read {device}: {len(frames)} channels, active events: {active[:8]}")
         except Exception as exc:
             self.log(f"Read failed: {exc}")
+
+    # -- live hardware streaming ----------------------------------------------
+
+    def hardware_toggle_stream(self) -> None:
+        """Start/stop the live stream poller for the selected device."""
+        if self._stream_thread is not None and self._stream_thread.is_alive():
+            self._stream_stop.set()
+            self._stream_thread.join(timeout=2.0)
+            self._stream_thread = None
+            self.log("Hardware stream stopped.")
+            return
+        device = self.hardware_device.text().strip()
+        if not self._require_server():
+            return
+        self._stream_stop = threading.Event()
+
+        class _Signals(QObject):
+            frames = Signal(int, int, list)
+
+        signals = _Signals()
+        stop = self._stream_stop
+        token = self.token
+        base = self.server_url
+
+        def poll() -> None:
+            session = httpx.Client(timeout=4.0)
+            while not stop.is_set():
+                try:
+                    response = session.get(
+                        f"{base}/api/v1/hardware/{device}/read",
+                        headers={"Authorization": f"Bearer {token}"},
+                    )
+                    if response.status_code == 200:
+                        frames = response.json()["frames"]
+                        active = [f for f in frames if f.get("has_spike") or f.get("has_stim")]
+                        signals.frames.emit(len(frames), len(active), active[:8])
+                except Exception:
+                    pass
+                stop.wait(0.25)
+
+        signals.frames.connect(self._on_stream_frames)
+        self._stream_thread = threading.Thread(target=poll, daemon=True)
+        self._stream_thread.start()
+        self.log(f"Hardware stream started for {device} (4 Hz poll).")
+
+    def _on_stream_frames(self, total: int, active_count: int, active: list) -> None:
+        self.lbl_stream.setText(f"Stream: {active_count} active / {total} channels")
+        if active:
+            self.log(f"live: {active}")
 
     # -- CL1 control panel ---------------------------------------------------
 
