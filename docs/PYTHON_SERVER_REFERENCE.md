@@ -21,6 +21,7 @@ backend for the desktop GUI and web client.
 | `job_events.py` | — | `publish_job_event` into the telemetry hub. |
 | `telemetry.py` | — | `telemetry_hub` — in-process pub/sub for live metrics over WebSocket. |
 | `worker_registry.py` | 2.6 KB | Worker registration and heartbeat bookkeeping. |
+| `hardware.py` | 10.1 KB | Hardware plugin system: `HardwarePlugin` interface + `HardwareRegistry` with three plugins — `Cl1LabsVirtualPlugin` (64-channel simulated dish, CL1 channel map), `SerialMEAPlugin` (real pyserial MEA/headstage, binary or NDJSON), `KeyboardInputPlugin` (manual events). Exposed via `/api/v1/hardware*` and streamed over `/ws/hardware/{id}`. |
 | `rust_client.py` | 0.9 KB | `dispatch_job` — HTTP call to the Rust backend (`SYNTHETIC_BRAIN_RUST_BACKEND_URL`). |
 | `protocol.py` | — | `envelope()` — consistent WebSocket message envelope. |
 | `cl1_labs_bridge.py` | CL1-Neural-labs protocol bridge — ported from `integration/cl1_labs_ts/server.ts`: stim channel validation, 384-byte little-endian binary frame codec, `/_/config` payload, `CultureParameters` defaults. |
