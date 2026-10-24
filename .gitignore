@@ -22,3 +22,4 @@ server/python/synthetic_brain.db
 backend/target/
 rust/backend/target/
 dist/
+build/pyinstaller/
