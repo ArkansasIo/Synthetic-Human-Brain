@@ -52,6 +52,11 @@ A common timebase is required to align multiple sensor systems and software simu
 
 Optional FPGA/MCU/SoC processing for timestamping, packetization, filtering, quality flags, and transport. Keep high-level brain modeling on the host compute system initially.
 
+**Implemented software stages** (protocol identical in Python and Rust):
+
+- `src/synthetic_brain/hardware_pipeline.py` — full pipeline: `SensorInterface`, `AnalogFrontEndConfig`, `Digitizer` (dropped-sample detection), `SyncClock`, `TransportPacket` (versioned schema `synthetic-brain-hardware-pipeline-v1`), `PacketStorage` (raw/derived separation), `replay()` for H1 recorded-data streaming.
+- `rust/backend/src/hardware_pipeline.rs` — same stages for the edge block: `Digitizer`, `QualityFlags`, `TransportPacket::to_json()` byte-compatible with the Python output, `PacketStorage`.
+
 ### Data transport
 
 Use a versioned packet schema with channel identity, timestamp, sample data, units, quality flags, and source metadata.
