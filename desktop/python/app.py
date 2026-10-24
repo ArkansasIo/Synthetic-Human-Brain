@@ -18,8 +18,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
-    QSpinBox,
-    QStatusBar,
     QTabWidget,
     QTextEdit,
     QTreeWidget,
@@ -27,7 +25,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PySide6.QtWidgets import QComboBox, QGridLayout, QHBoxLayout, QScrollArea, QSplitter
 
 SAMPLE_RATE_HZ = 25_000
 
