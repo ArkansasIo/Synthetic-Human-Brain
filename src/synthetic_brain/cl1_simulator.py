@@ -12,7 +12,8 @@ and deterministic simulator data generation.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+import dataclasses
 import json
 import math
 import random
@@ -116,7 +117,7 @@ class Recording:
         payload = {
             "format": "synthetic-brain-cl1-simulator-v1",
             "attributes": self.attributes,
-            "spikes": [spike.__dict__ for spike in self.spikes],
+            "spikes": [dataclasses.asdict(spike) for spike in self.spikes],
             "stims": [
                 {"timestamp": stim.timestamp, "channel": stim.channel}
                 for stim in self.stims

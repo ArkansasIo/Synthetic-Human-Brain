@@ -135,6 +135,9 @@ class Neurons:
         return self
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        self.close()
+
+    def close(self) -> None:
         for recording in self._recordings:
             if not recording.stopped:
                 recording.stop()

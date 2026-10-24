@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import models
 from .auth import authenticate_user, issue_token, new_session_id, register_user
 from .config import settings
 from .db import db_session
@@ -23,6 +24,14 @@ from .rust_client import dispatch_job
 from .telemetry import telemetry_hub
 
 app = FastAPI(title=settings.app_name, version=settings.version)
+
+
+@app.on_event("startup")
+async def create_tables() -> None:
+    from .db import engine
+
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()],
@@ -295,6 +304,103 @@ async def get_telemetry(experiment_id: str, limit: int = Query(default=500, ge=1
     await project_access(session, experiment.project_id, user)
     result = await session.execute(select(TelemetryEvent).where(TelemetryEvent.experiment_id == experiment_id).order_by(TelemetryEvent.timestamp.desc()).limit(limit))
     return {"items": [{"id": e.id, "experiment_id": e.experiment_id, "metric": e.metric, "value": e.value, "timestamp": e.timestamp.isoformat() if e.timestamp else None, "metadata": e.metadata_json or {}} for e in result.scalars().all()]}
+
+class NetworkSpec(BaseModel):
+    """Weighted directed graph for the network-driven simulator."""
+
+    neuron_count: int = Field(ge=1, le=4096)
+    edges: list[tuple[int, int, float]] = Field(default_factory=list)
+    steps: int = Field(default=10, ge=1, le=10_000)
+    external_input: float = 0.0
+    seed: int = 42
+
+
+class NeuronModelSpec(BaseModel):
+    """Configuration for the leaky-rate neuron model."""
+
+    decay: float = Field(default=0.9, ge=0.0, le=1.0)
+    minimum: float = 0.0
+    maximum: float = 1.0
+
+
+class SynapseModelSpec(BaseModel):
+    """Configuration for the linear synapse model."""
+
+    scale: float = 1.0
+
+
+@app.get("/api/v1/network/models")
+async def network_models(user: User = Depends(current_user)) -> dict:
+    """Model contracts exposed by the network-driven simulator."""
+    return {
+        "neuron_model": {
+            "protocol": "NeuronModel.update(activity, input_signal, time_step) -> float",
+            "default": "LeakyRateNeuron",
+            "parameters": {"decay": [0.0, 1.0], "minimum": "< maximum", "maximum": "> minimum"},
+            "range": "clamped to [minimum, maximum]",
+        },
+        "synapse_model": {
+            "protocol": "SynapseModel.transmit(signal, weight) -> float",
+            "default": "LinearSynapse",
+            "parameters": {"scale": "any finite float"},
+        },
+        "constraints": [
+            "outputs must be finite numeric values",
+            "network size must match SimulationConfig.neuron_count",
+            "initial state drawn from a seeded local random generator",
+            "synchronous update: all signals computed from the prior snapshot",
+        ],
+    }
+
+
+@app.post("/api/v1/network/simulate")
+async def network_simulate(spec: NetworkSpec, user: User = Depends(current_user)) -> dict:
+    """Run the graph-driven simulator server-side and return the trajectory."""
+    try:
+        from synthetic_brain import NeuralNetwork, NetworkSimulation, SimulationConfig
+    except ImportError as exc:  # pragma: no cover - depends on deployment
+        raise HTTPException(status_code=503, detail=f"simulation engine unavailable: {exc}")
+    network = NeuralNetwork(neuron_count=spec.neuron_count)
+    try:
+        for source, target, weight in spec.edges:
+            network.connect(source, target, weight=weight)
+        simulation = NetworkSimulation(network, SimulationConfig(neuron_count=spec.neuron_count, seed=spec.seed))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    trajectory = [simulation.snapshot().activity]
+    for _ in range(spec.steps):
+        trajectory.append(simulation.step(external_input=spec.external_input).activity)
+    return {
+        "steps": spec.steps,
+        "neuron_count": spec.neuron_count,
+        "seed": spec.seed,
+        "trajectory": [list(activity) for activity in trajectory],
+    }
+
+
+@app.post("/api/v1/network/models/neuron")
+async def validate_neuron_model(spec: NeuronModelSpec, user: User = Depends(current_user)) -> dict:
+    try:
+        from synthetic_brain.neuron import LeakyRateNeuron
+
+        model = LeakyRateNeuron(decay=spec.decay, minimum=spec.minimum, maximum=spec.maximum)
+        value = model.update(0.5, 1.0, 0.1)
+    except (ImportError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"valid": True, "sample_update": value}
+
+
+@app.post("/api/v1/network/models/synapse")
+async def validate_synapse_model(spec: SynapseModelSpec, user: User = Depends(current_user)) -> dict:
+    try:
+        from synthetic_brain.synapse import LinearSynapse
+
+        model = LinearSynapse(scale=spec.scale)
+        value = model.transmit(0.5, 2.0)
+    except (ImportError, ValueError, TypeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"valid": True, "sample_transmit": value}
+
 
 @app.get("/api/v1/servers")
 async def list_servers(user: User = Depends(current_user), session: AsyncSession = Depends(db_session)) -> dict:

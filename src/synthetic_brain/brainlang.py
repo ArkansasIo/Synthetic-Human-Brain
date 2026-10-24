@@ -43,9 +43,9 @@ KEYWORDS = {
 }
 
 TOKEN_RE = re.compile(
-    r'(?P<comment>//[^\\n]*|#[^\\n]*)|(?P<string>"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\')|'
-    r'(?P<number>\\d+(?:\\.\\d+)?)|(?P<op>==|!=|<=|>=|->|\\+|-|\\*|/|%|=|<|>|!|\\.)|'
-    r'(?P<punct>[{}()\\[\\],;:])|(?P<name>[A-Za-z_][A-Za-z0-9_]*)|(?P<space>\\s+)|(?P<bad>.)'
+    r'(?P<comment>//[^\n]*|#[^\n]*)|(?P<string>"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|'
+    r'(?P<number>\d+(?:\.\d+)?)|(?P<op>==|!=|<=|>=|->|\+|-|\*|/|%|=|<|>|!|\.)|'
+    r'(?P<punct>[{}()\[\],;:])|(?P<name>[A-Za-z_][A-Za-z0-9_]*)|(?P<space>\s+)|(?P<bad>.)'
 )
 
 
@@ -195,15 +195,22 @@ class Parser:
         self.expect(")")
         return params
 
+    STATEMENT_KEYWORDS = {
+        "brain", "population", "connect", "stimulus", "emit", "record", "step",
+        "let", "var", "fn", "class", "if", "while", "return", "this",
+    }
+
     def attributes(self) -> dict[str, dict[str, Any]]:
         attrs: dict[str, dict[str, Any]] = {}
         while self.current.value not in {"}", ";", "eof"}:
+            if self.current.kind == "keyword" and self.current.value in self.STATEMENT_KEYWORDS:
+                break
             key = self.name()
             value = self.expression()
             attrs[key] = value
             if self.accept(","):
                 continue
-            if self.current.value in {"weight", "delay"} or self.current.kind in {"name", "keyword"}:
+            if self.current.value in {"weight", "delay"} or self.current.kind == "name":
                 continue
             break
         self.accept(";")
