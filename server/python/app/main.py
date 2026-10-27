@@ -563,7 +563,7 @@ async def hardware_stream_endpoint(
         return
     try:
         plugin = hardware_registry.get(device_id)
-    except HardwareError as exc:
+    except HardwareError:
         await _reject_websocket(websocket, f"unknown device '{device_id}' — see GET /api/v1/hardware")
         return
     await websocket.accept()
